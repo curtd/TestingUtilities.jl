@@ -7,8 +7,8 @@ is_reserved_syntax(x) = x isa Symbol && x in reserved_syntax
 is_ignored_symbol(x) = x isa Symbol && (hasproperty(Core, x) || hasproperty(Base, x))
 is_supported_expr(expr) = expr isa Expr && expr.head in supported_exprs
 is_splat_expr(expr) = expr isa Expr && expr.head === :...
-iscall(expr) = Base.isexpr(expr, :call) && !isempty(expr.args)
-isref(expr) = Base.isexpr(expr, :ref) && !isempty(expr.args)
+iscall(expr) = Meta.isexpr(expr, :call) && !isempty(expr.args)
+isref(expr) = Meta.isexpr(expr, :ref) && !isempty(expr.args)
 
 is_atom(x) = typeof(x) in (Bool, Float64, Int, String, QuoteNode)
 
@@ -159,9 +159,9 @@ function _computational_graph!(current_graph, expr)
     children_kwargs = Any[]
     if expr isa Symbol 
         @goto exit
-    elseif Base.isexpr(expr, :if)
+    elseif Meta.isexpr(expr, :if)
         @goto exit
-    elseif Base.isexpr(expr, :curly) 
+    elseif Meta.isexpr(expr, :curly) 
         @goto exit 
     else
         call_func, args, kwargs = parse_args_kwargs(expr)
@@ -175,7 +175,7 @@ function _computational_graph!(current_graph, expr)
     for arg in args
         should_ignore_sym = is_atom(arg) || is_reserved_syntax(arg) || is_ignored_symbol(arg) 
         if !should_ignore_sym && (arg isa Symbol || arg isa Expr)
-            if Base.isexpr(arg, :generator)
+            if Meta.isexpr(arg, :generator)
                 new_arg_expr = _computational_graph_generator_expr!(arg_counter, current_graph, children, arg)
                 push!(new_args, new_arg_expr)
             else
@@ -252,15 +252,15 @@ end
 function walk_expr!(graph, ex)
     children = _computational_graph!(graph, ex)
     for arg in children
-        if Base.isexpr(arg, :parameters) 
+        if Meta.isexpr(arg, :parameters) 
             for _arg in arg.args 
-                if Base.isexpr(_arg, :kw)
+                if Meta.isexpr(_arg, :kw)
                     walk_expr!(graph, _arg.args[2])
                 else
                     walk_expr!(graph, _arg)
                 end
             end
-        elseif Base.isexpr(arg, :kw) 
+        elseif Meta.isexpr(arg, :kw) 
             if arg.args[2] isa Expr 
                 walk_expr!(graph, arg.args[2])
             end
