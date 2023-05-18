@@ -8,7 +8,3 @@ The [TestingUtilities](https://github.com/curtd/TestingUtilities.jl) provides ma
 
 ```@index
 ```
-
-```@autodocs
-Modules = [TestingUtilities]
-```

@@ -11,7 +11,7 @@ DocMeta.setdocmeta!(TestingUtilities, :DocTestSetup, :(using TestingUtilities); 
 
 makedocs(;
     modules=[TestingUtilities],
-    authors="Curt Da Silva <curt.dasilva@gmail.com>",
+    authors="Curt Da Silva",
     repo="https://github.com/curtd/TestingUtilities.jl/blob/{commit}{path}#{line}",
     sitename="TestingUtilities.jl",
     format=Documenter.HTML(;
@@ -27,7 +27,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/curtd/TestingUtilities.jl",
+    repo="github.com/curtd/TestingUtilities.jl.git",
     devbranch="main",
-    julia = "1.6"
+    versions=["v^"]
 )

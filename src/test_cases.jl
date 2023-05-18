@@ -151,7 +151,9 @@ macro test_cases(args...)
     test_data_values_expr = Expr(:vcat)
     for test_case_values in all_test_case_values
         output = []
-        for ((;name, replace_expr), test_case) in zip(normalized_headers, test_case_values) 
+        for (header, test_case) in zip(normalized_headers, test_case_values) 
+            name = header.name 
+            replace_expr = header.replace_expr
             if !isnothing(replace_expr)
                 replace_key = first(replace_expr)
                 replace_value = last(replace_expr)
