@@ -176,7 +176,10 @@ macro test_cases(args...)
 
     source = QuoteNode(__source__)
 
-    run_tests_body = Expr(:block)
+    data_var = gensym("test_case_data")
+    assign_values_expr = Expr(:block, [Expr(:(=), name, :($data_var.$(name))) for name in all_header_names]...)
+
+    run_tests_body = Expr(:block, assign_values_expr)
     for (i, evaluate_test_expr) in enumerate(evaluate_test_exprs)
         
         new_test_expr = generate_test_expr(evaluate_test_expr, :(local_evaluate_test_data[$i]); escape=false)
@@ -221,7 +224,7 @@ macro test_cases(args...)
         
     end
 
-    run_tests_expr = Expr(:for, Expr(:(=), Expr(:tuple, Expr(:parameters, all_header_names...)), :test_data), run_tests_body)
+    run_tests_expr = Expr(:for, Expr(:(=), data_var, :test_data), run_tests_body)
     out_expr = quote 
         local TestingUtilities = $(@__MODULE__)
         local failed_test_data = [Any[] for i in 1:$(length(evaluate_test_exprs))]
