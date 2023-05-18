@@ -64,8 +64,8 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
                 (expr = :(a.b), result = (call_func = :., args=[:a,QuoteNode(:b)], kwargs=[])),
                 (expr = :(a for a in T if a > 0), result = (call_func = :generator, args=[:a, Expr(:filter, :(a > 0), :(a = T))], kwargs=[]))
             ]
-            for (; expr, result) in test_data 
-                @test isequal(TestingUtilities.parse_args_kwargs(expr), tuple(values(result)...))
+            for data in test_data 
+                @test isequal(TestingUtilities.parse_args_kwargs(data.expr), tuple(values(data.result)...))
             end 
         end
         @testset "_computational_graph!" begin 
@@ -428,7 +428,9 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
         results = Test.@testset NoThrowTestSet "Tests inside for-loop - second one throws" begin 
             io = IOBuffer()
             g = x->2x
-            for (; a, b) in test_data 
+            for data in test_data 
+                a = data.a 
+                b = data.b
                 if a == 4
                     @Test set_failed_values=true io=io sometimes_fails(a, g(b))
                 else

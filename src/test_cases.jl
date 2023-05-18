@@ -10,7 +10,7 @@ function parse_table(expression; is_header::Bool=false)
             output
         @case Expr(:tuple, arg1, arg2)
             if is_header
-                if arg1 isa Symbol && (Base.isexpr(arg2, :(=), 2) && arg2.args[1] isa Symbol )
+                if arg1 isa Symbol && (Meta.isexpr(arg2, :(=), 2) && arg2.args[1] isa Symbol )
                     [(arg1, arg2.args[1] => arg2.args[2])]
                 else 
                     error("expression $expression must be a tuple of the form `(name, placeholder = value)`")
@@ -54,7 +54,7 @@ function test_did_not_succeed(test_result)
 end
 
 function rm_macrocall_linenode!(expr::Expr)
-    if Base.isexpr(expr, :macrocall)
+    if Meta.isexpr(expr, :macrocall)
         expr.args[2] = nothing 
     end
 end
@@ -105,7 +105,7 @@ macro test_cases(args...)
     io_expr = fetch_kwarg_expr(kwargs; key=:io, expected_type=[Symbol, Expr], default_value=:(stderr))
 
     body = args[end]
-    Base.isexpr(body, :block) && length(body.args) ≥ 3 || error("Input expression $(body) must be a block expression with at least 3 subexpressions")
+    Meta.isexpr(body, :block) && length(body.args) ≥ 3 || error("Input expression $(body) must be a block expression with at least 3 subexpressions")
     idx = findfirst(t->!(t isa LineNumberNode), body.args)
     isnothing(idx) && error("Input expression $(body) must not be empty")
     headers = parse_table(body.args[idx]; is_header=true)
@@ -116,7 +116,7 @@ macro test_cases(args...)
     all_test_case_values = Any[]
     for expr in body.args[idx+1:end]
         expr isa LineNumberNode && continue 
-        if Base.isexpr(expr, :macrocall)
+        if Meta.isexpr(expr, :macrocall)
             expr.args[1] === Symbol("@test") || error("Only @test macros allowed in $(expr)")
             test_expr_started = true 
             push!(evaluate_test_exprs, expr.args[end])
@@ -124,7 +124,7 @@ macro test_cases(args...)
             if test_expr_started
                 error("Cannot have test expressions interspersed with test data in expression $(body)")
             end
-            if Base.isexpr(expr, :tuple)
+            if Meta.isexpr(expr, :tuple)
                 test_data_expr = parse_tuple(expr)
             else
                 test_data_expr = parse_table(expr; is_header=false)
@@ -176,7 +176,10 @@ macro test_cases(args...)
 
     source = QuoteNode(__source__)
 
-    run_tests_body = Expr(:block)
+    data_var = gensym("test_case_data")
+    assign_values_expr = Expr(:block, [Expr(:(=), name, :($data_var.$(name))) for name in all_header_names]...)
+
+    run_tests_body = Expr(:block, assign_values_expr)
     for (i, evaluate_test_expr) in enumerate(evaluate_test_exprs)
         
         new_test_expr = generate_test_expr(evaluate_test_expr, :(local_evaluate_test_data[$i]); escape=false)
@@ -221,7 +224,7 @@ macro test_cases(args...)
         
     end
 
-    run_tests_expr = Expr(:for, Expr(:(=), Expr(:tuple, Expr(:parameters, all_header_names...)), :test_data), run_tests_body)
+    run_tests_expr = Expr(:for, Expr(:(=), data_var, :test_data), run_tests_body)
     out_expr = quote 
         local TestingUtilities = $(@__MODULE__)
         local failed_test_data = [Any[] for i in 1:$(length(evaluate_test_exprs))]
