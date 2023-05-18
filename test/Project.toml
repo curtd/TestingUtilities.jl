@@ -1,0 +1,3 @@
+[deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+WidthLimitedIO = "b8c1c048-cf81-46c6-9da0-18c1d99e41f2"
