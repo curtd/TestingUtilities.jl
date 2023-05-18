@@ -2,16 +2,16 @@ unwrap_if_quotenode(x) = x
 unwrap_if_quotenode(x::QuoteNode) = x.value
 
 """
-    parse_kwarg_expr(exs...) -> Dict{Symbol, Any}
+    parse_kwarg_expr(exprs...) -> LittleDict{Symbol, Any}
 
-Parse keyword arguments from a series of expressions, either of the form `key=value` or `key`
+Parse keyword arguments from a series of expressions, which are either of the form `key=value` or `key`
 """
-function parse_kwarg_expr(exs...)
+function parse_kwarg_expr(exprs...)
     @nospecialize 
 
     kwargs = LittleDict{Symbol,Any}(Symbol[], Any[])
-    isempty(exs) && return kwargs
-    for (i,ex) in enumerate(exs) 
+    isempty(exprs) && return kwargs
+    for (i,ex) in enumerate(exprs) 
         @switch ex begin
             @case value::QuoteNode || value::Symbol
                 kwargs[unwrap_if_quotenode(value)] = (; position=i, value)
@@ -29,21 +29,21 @@ function parse_kwarg_expr(exs...)
 end
 
 """
-    fetch_kwarg_expr(args; expected_types, [key, arg_position, default_value])
+    fetch_kwarg_expr(kwargs; expected_types, [key, arg_position, default_value])
 
-    Returns the `value` corresponding to `key` derived from `kwargs` and ensure it is of type `expected_types`.
+Returns the `value` corresponding to `key` derived from `kwargs` and ensure it is of type `expected_types`.
 
-    At least one of `key` and `arg_position` must be provided and `arg_position` takes precedence.
+At least one of `key` and `arg_position` must be provided and `arg_position` takes precedence.
 
-    See also [@parse_kwarg_expr]
+See also [`parse_kwarg_expr`](@ref)
 
 # Arguments
-- `args::ArgsKwargs` - Parsed keyword argument expressions
+- `kwargs` - Parsed keyword argument expressions
 
 # Keyword Arguments
 - `expected_type::Union{Vector{<:Type}, Type}` - Allowable types for value 
 - `key::Union{Symbol, Nothing}` - Key to fetch 
-- `arg_position::Union{Int,Nothing}` - Position argument to fetch
+- `arg_position::Union{Int,Nothing}` - Position argument to fetch 
 - `default_value=nothing` - Optional default value for `key`. Will throw an `ErrorException` if `key` is not psent in `kwargs` and this value is `nothing`. 
 """
 function fetch_kwarg_expr(kwargs::AbstractDict{Symbol,Any}; key::Union{Symbol,Nothing}=nothing, arg_position::Union{Int,Nothing}=nothing, expected_type::Union{Vector{<:Type}, Type}=Any, default_value=nothing)

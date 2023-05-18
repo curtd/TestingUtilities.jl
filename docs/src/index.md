@@ -4,7 +4,4 @@ CurrentModule = TestingUtilities
 
 # TestingUtilities
 
-The [TestingUtilities](https://github.com/curtd/TestingUtilities.jl) provides macros that helps improve the seamlessness and productivity of writing tests for your packages. 
-
-```@index
-```
+The [TestingUtilities](https://github.com/curtd/TestingUtilities.jl) provides macros that make testing your code less tedious and more insightful. 
