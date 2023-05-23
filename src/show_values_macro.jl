@@ -1,12 +1,17 @@
 const _DEFAULT_TEST_EXPR_KEY = gensym(:_initial)
 
-function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false)
+function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
     if should_define_vars_in_failed_tests(should_set_failed_values; force) && !isempty(failed_values)
+        imported_names_in_main = setdiff(names(_module; imported=true), names(_module))
         set_failed_values_sub_expr = Expr(:block)
         for (key, value) in pairs(failed_values)
-            push!(set_failed_values_sub_expr.args, Expr(:(=), key, value))
+            if key ∉ imported_names_in_main
+                push!(set_failed_values_sub_expr.args, Expr(:(=), key, value))
+            else 
+                @warn "Variable $key (= $value) not set in $_module -- name already exists and is imported in module"
+            end
         end
-        Main.eval(set_failed_values_sub_expr)
+        Core.eval(_module, set_failed_values_sub_expr)
     end
     return nothing
 end
