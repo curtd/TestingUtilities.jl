@@ -3,7 +3,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://curtd.github.io/TestingUtilities.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://curtd.github.io/TestingUtilities.jl/dev/)
 [![Build Status](https://github.com/curtd/TestingUtilities.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/curtd/TestingUtilities.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![][codecov-img]][codecov-url]
+[![Coverage Status](https://coveralls.io/repos/github/curtd/TestingUtilities.jl/badge.svg)](https://coveralls.io/github/curtd/TestingUtilities.jl)
 
 `TestingUtilities` provides macros for improving the visibility into your failing tests.
 
