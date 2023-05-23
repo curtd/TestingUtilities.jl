@@ -1,16 +1,23 @@
-@enum TestingSetting DefineVarsInFailedTests  
+@enum TestingSetting DefineVarsInFailedTests DefineVarsInFailedTestsModule 
 
-const _TESTING_SETTINGS = Dict{TestingSetting, Bool}()
+const _TESTING_SETTINGS = Dict{TestingSetting, Any}()
 
 function testing_setting(t::TestingSetting)
-    return get!(_TESTING_SETTINGS, t, true)
+    if t == DefineVarsInFailedTests
+        return get!(_TESTING_SETTINGS, t, true)
+    elseif t == DefineVarsInFailedTestsModule
+        return get!(_TESTING_SETTINGS, t, Main)
+    end
+    return nothing
 end
 
 """
     define_vars_in_failed_tests(value::Bool)
 
 If `value` is `true`, variables that cause a `@Test` expression to fail will be 
-defined in `Main` when Julia is run in interactive mode
+defined in `Main` when Julia is run in interactive mode.
+
+Defaults to `true` if unset. 
 """
 function define_vars_in_failed_tests(value::Bool) 
     _TESTING_SETTINGS[DefineVarsInFailedTests] = value

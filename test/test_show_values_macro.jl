@@ -32,15 +32,20 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             for v in (var1_name, var2_name, var3_name)
                 @test !hasproperty(Main, v)
             end
-            values = TestingUtilities.OrderedDict{Symbol,Any}(var1_name => 1, var2_name => 2, var3_name => 3)
-            TestingUtilities.set_failed_values_in_main(values, false, force=false)
+            vals = TestingUtilities.OrderedDict{Symbol,Any}(var1_name => 1, var2_name => 2, var3_name => 3)
+            TestingUtilities.set_failed_values_in_main(vals, false, force=false)
             for v in (var1_name, var2_name, var3_name)
                 @test !hasproperty(Main, v)
             end
-            TestingUtilities.set_failed_values_in_main(values, true, force=true)
+            TestingUtilities.set_failed_values_in_main(vals, true, force=true)
             for v in (var1_name, var2_name, var3_name)
-                @test getproperty(Main, v) == values[v]
+                @test getproperty(Main, v) == vals[v]
             end
+            # Don't overwrite explicitly imported variables 
+            @eval Main import Base.vcat
+            vals = TestingUtilities.OrderedDict{Symbol,Any}(:vcat => 1)
+            @test_logs (:warn, "Variable vcat (= 1) not set in Main -- name already exists and is imported in module") TestingUtilities.set_failed_values_in_main(vals, true, force=true)
+            @test Main.vcat === Base.vcat
         end
         @testset "parse_args_kwargs" begin 
             test_data = [
