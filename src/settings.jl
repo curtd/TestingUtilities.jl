@@ -1,12 +1,14 @@
-@enum TestingSetting DefineVarsInFailedTests DefineVarsInFailedTestsModule 
+@enum TestingSetting DefineVarsInFailedTests DefineVarsInFailedTestsModule EmitWarnings
 
 const _TESTING_SETTINGS = Dict{TestingSetting, Any}()
 
 function testing_setting(t::TestingSetting)
     if t == DefineVarsInFailedTests
-        return get!(_TESTING_SETTINGS, t, true)
+        return get!(_TESTING_SETTINGS, t, true)::Bool
     elseif t == DefineVarsInFailedTestsModule
-        return get!(_TESTING_SETTINGS, t, Main)
+        return get!(_TESTING_SETTINGS, t, Main)::Module
+    elseif t == EmitWarnings
+        return get!(_TESTING_SETTINGS, t, false)::Bool
     end
     return nothing
 end
@@ -25,3 +27,15 @@ function define_vars_in_failed_tests(value::Bool)
 end
 
 should_define_vars_in_failed_tests(should; force::Bool=false) = force || (((!isnothing(should) && should == true) || (isnothing(should) && testing_setting(DefineVarsInFailedTests))) && Base.isinteractive())
+
+"""
+    emit_warnings(value::Bool)
+
+If `value` is `true`, emit warning messages in test macros.
+
+Defaults to `false` if unset. 
+"""
+function emit_warnings(value::Bool) 
+    _TESTING_SETTINGS[EmitWarnings] = value
+    return nothing 
+end

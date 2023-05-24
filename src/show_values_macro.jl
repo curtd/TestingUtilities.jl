@@ -1,22 +1,16 @@
 const _DEFAULT_TEST_EXPR_KEY = gensym(:_initial)
 
-function module_using_names(m::Module=Main)
-    _modules = ccall(:jl_module_usings, Any, (Any,), m)
-    output = Set{Symbol}(names(m, imported=true))
-    for _mod in _modules 
-        union!(output, Set{Symbol}(names(_mod)))
-    end
-    return output
-end
-
 function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
     if should_define_vars_in_failed_tests(should_set_failed_values; force) && !isempty(failed_values)
-        imported_names_in_main = module_using_names(Main)
+        if isempty(imported_names_in_main[])
+            update_imported_names_in_main()
+        end
+        _imported_names_in_main = imported_names_in_main[]
         set_failed_values_sub_expr = Expr(:block)
         for (key, value) in pairs(failed_values)
-            if key ∉ imported_names_in_main
+            if key ∉ _imported_names_in_main
                 push!(set_failed_values_sub_expr.args, Expr(:(=), key, value))
-            else 
+            elseif testing_setting(EmitWarnings)
                 @warn "Variable $key (= $value) not set in $_module -- name already exists and is imported in module"
             end
         end
