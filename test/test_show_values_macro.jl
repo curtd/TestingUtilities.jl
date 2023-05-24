@@ -44,12 +44,25 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             # Don't overwrite explicitly imported variables 
             @eval Main import Base.vcat
             vals = TestingUtilities.OrderedDict{Symbol,Any}(:vcat => 1)
-            @test_logs (:warn, "Variable vcat (= 1) not set in Main -- name already exists and is imported in module") TestingUtilities.set_failed_values_in_main(vals, true, force=true)
+            TestingUtilities.update_imported_names_in_main()
+
+            TestingUtilities.emit_warnings(true)
+            try 
+                @test_logs (:warn, "Variable vcat (= 1) not set in Main -- name already exists and is imported in module") TestingUtilities.set_failed_values_in_main(vals, true, force=true)
+            finally 
+                TestingUtilities.emit_warnings(false)
+            end
             @test Main.vcat === Base.vcat
 
             @eval Main using WidthLimitedIO 
+            TestingUtilities.update_imported_names_in_main()
             vals = TestingUtilities.OrderedDict{Symbol,Any}(:ansi_esc_status => 1)
-            @test_logs (:warn, "Variable ansi_esc_status (= 1) not set in Main -- name already exists and is imported in module") TestingUtilities.set_failed_values_in_main(vals, true, force=true)
+            TestingUtilities.emit_warnings(true)
+            try 
+                @test_logs (:warn, "Variable ansi_esc_status (= 1) not set in Main -- name already exists and is imported in module") TestingUtilities.set_failed_values_in_main(vals, true, force=true)
+            finally 
+                TestingUtilities.emit_warnings(false)
+            end
             @test Main.ansi_esc_status === Main.WidthLimitedIO.ansi_esc_status
         end
         @testset "parse_args_kwargs" begin 

@@ -6,6 +6,8 @@ module TestingUtilities
 
     export define_vars_in_failed_tests
     
+    include("util.jl")
+    
     include("settings.jl")
 
     include("macro_util.jl")
