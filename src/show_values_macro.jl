@@ -1,8 +1,17 @@
 const _DEFAULT_TEST_EXPR_KEY = gensym(:_initial)
 
+function module_using_names(m::Module=Main)
+    _modules = ccall(:jl_module_usings, Any, (Any,), m)
+    output = Set{Symbol}(names(m, imported=true))
+    for _mod in _modules 
+        union!(output, Set{Symbol}(names(_mod)))
+    end
+    return output
+end
+
 function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
     if should_define_vars_in_failed_tests(should_set_failed_values; force) && !isempty(failed_values)
-        imported_names_in_main = setdiff(names(_module; imported=true), names(_module))
+        imported_names_in_main = module_using_names(Main)
         set_failed_values_sub_expr = Expr(:block)
         for (key, value) in pairs(failed_values)
             if key ∉ imported_names_in_main
