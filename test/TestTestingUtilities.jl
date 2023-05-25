@@ -12,6 +12,8 @@ module TestTestingUtilities
     Test.finish(ts::NoThrowTestSet) = ts.results
     test_results_match = (results, ref_results)-> all(result isa ref_result for (result, ref_result) in zip(results, ref_results) )
 
+    include("test_settings.jl")
+
     include("test_show_values_macro.jl")
     
     include("test_cases_macro.jl")

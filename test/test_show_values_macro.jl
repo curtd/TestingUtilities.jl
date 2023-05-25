@@ -24,6 +24,19 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
 
 @testset "@Test" begin 
     @testset "Util" begin 
+        @testset "show_value" begin 
+            io = IOBuffer()
+            k = :var
+            v = 1
+            TestingUtilities.show_value(v; io)
+            @test String(take!(io)) == "1\n"
+            TestingUtilities.show_value(k, v; io)
+            @test String(take!(io)) == "var = 1\n"
+
+            k = Expr(:call, :f, :x)
+            TestingUtilities.show_value(k, v; io)
+            @test String(take!(io)) == "`f(x)` = 1\n"
+        end
         @testset "set_failed_values_in_main" begin 
             @eval Main $(:(var1 = gensym(:var1); var2 = gensym(:var2); var3 = gensym(:var3)))
             var1_name = Main.var1 
@@ -263,10 +276,6 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             expr = :(b isa Vector)
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(arg1 isa Vector), :arg1 => :(b))
-        end
-        @testset "Misc" begin 
-            @test TestingUtilities.should_define_vars_in_failed_tests(false) == false
-            @test TestingUtilities.should_define_vars_in_failed_tests(true) == Base.isinteractive()
         end
     end
     @testset "@testset behaviour" begin 
