@@ -66,39 +66,42 @@ end
         [test expressions]
     end
 
-Create a set of test data and, for each test data point, evaluates one or more test expressions on them. The values in each test case that cause a failing test will be written to `io`. 
+Create a set of test data and, for each test data point, evaluates one or more test expressions on them. The values in each test case that cause the test to fail or for an exception to be thrown will be written to `io`. 
 
 `[test cases]` must be a series of expressions of the form
 
 ```julia
-    variable1 | variable2 | ... | variablen 
-    value11   | value12   | ... | value 1n
-    value21   | value22   | ... | value 2n
+    variable₁ | variable₂ | ... | variableₙ 
+    value₁₁   | value₁₂   | ... | value₁ₙ
+    value₂₁   | value₂₂   | ... | value₂ₙ
     ...
-    valuem1   | valuem2   | ... | value mn
+    valueₘ₁   | valueₘ₂   | ... | valueₘₙ
 ```
 
-Equivalent forms of `value1 | value2 | ... | valuen` are the expressions
+Equivalent forms of `value₁ | value₂ | ... | valueₙ` are
 
-`(variable1=value1, variable2=value2, ..., variablen=valuen)`
+`(variable₁ = value₁, variable₂ = value₂, ..., variableₙ = valueₙ)`
 
 or 
 
-`variable1 => value1, variable2 => value2, ..., variablen => valuen`
+`variable₁ => value₁, variable₂ => value₂, ..., variableₙ  => valueₙ`
+
+Note: The `variableᵢ` can involve expressions that refer to `variableⱼ` for any `j < i`. E.g., the following is a valid `[test_case]` expression: 
+```julia
+    x  | y   | z
+    1  | x^2 | y-x
+```
 
 `[test expressions]` must be a series of one or more test evaluation expressions 
 
 ```julia
-    @test cond1
-    @test cond2 
+    @test cond₁
+    @test cond₂ 
     ...
+    @test condₖ
 ```
 
-Here, each test condition expression `condi` evalutes to a `Bool` and contains zero or more values from `variable1, variable2, ..., variablen`.
-
-The variable-value matrix is translated into a `for`-loop and each test condition is evaluated at every iteration of the loop. 
-
-If any of the tests fail or throw an exception, the set of all points that caused a test condition not to pass are printed to `io`, along with the corresponding test condition.
+Here, each test condition expression `condᵢ` evalutes to a `Bool` and contains zero or more values from `variable₁, variable₂, ..., variableₙ `.
 """
 macro test_cases(args...)
     kwargs = parse_kwarg_expr(args[1:end-1]...)
@@ -150,7 +153,7 @@ macro test_cases(args...)
 
     test_data_values_expr = Expr(:vcat)
     for test_case_values in all_test_case_values
-        output = []
+        output_expr = Expr(:block)
         for (header, test_case) in zip(normalized_headers, test_case_values) 
             name = header.name 
             replace_expr = header.replace_expr
@@ -162,12 +165,13 @@ macro test_cases(args...)
                 replace_value = nothing
             end
             if isnothing(replace_key) || !(test_case == replace_key)
-                push!(output, Expr(:kw, name, test_case))
+                push!(output_expr.args, :(local $name = $(test_case)))
             else
-                push!(output, Expr(:kw, name, replace_value))
+                push!(output_expr.args, :(local $name = $(replace_value)))
             end
         end
-        push!(test_data_values_expr.args, Expr(:tuple, Expr(:parameters, output...)))
+        push!(output_expr.args, Expr(:tuple, Expr(:parameters, all_header_names...)))
+        push!(test_data_values_expr.args, output_expr)
     end
     
     current_values_expr = Expr(:tuple, Expr(:parameters, all_header_names...))
