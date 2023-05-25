@@ -28,6 +28,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/curtd/TestingUtilities.jl.git",
-    devbranch="main",
-    versions=["v^"]
+    devbranch="main", push_preview=true
 )
