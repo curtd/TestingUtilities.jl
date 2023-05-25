@@ -234,6 +234,10 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(f(arg1, arg2; k = 10)), :arg1 => :a, :arg2 => :(g(arg3)), :arg3 => :(arg4^2), :arg4 => :b)
 
+            expr = :(f(a, g(b^2), k=b^2))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(f(arg1, arg2; k = kwarg3)), :arg1 => :a, :arg2 => :(g(kwarg3)), :kwarg3 => :(arg4^2), :arg4 => :b)
+
             expr = :([a, g(b)])
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(Base.vect(arg1, arg2)), :arg1 => :a, :arg2 => :(g(arg3)), :arg3 => :b )

@@ -126,7 +126,7 @@ end
 
 function new_arg_if_not_exists!(arg_counter::ArgCounter, current_graph, expr; is_kwarg::Bool=false)
     existing_key = find_in_current_graph(current_graph, expr)
-    output_arg = isnothing(existing_key) ? new_arg!(arg_counter; is_kwarg) : expr 
+    output_arg = isnothing(existing_key) ? new_arg!(arg_counter; is_kwarg) : existing_key 
     return output_arg, existing_key
 end
 
