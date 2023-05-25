@@ -1,3 +1,6 @@
+remove_quoting(expr::Expr) = Meta.isexpr(expr, :$) ? remove_quoting(expr.args[1]) : expr
+remove_quoting(expr) = expr
+
 @testset "@test_cases" begin 
     @testset "Util" begin 
         @test TestingUtilities.parse_table(:(a | b)) == [:a, :b]
@@ -64,6 +67,20 @@
         @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Pass))
+
+    results = Test.@testset NoThrowTestSet "Failing Tests - In values, refer to previously defined name" begin 
+        io = IOBuffer()
+        @test_cases io=io begin 
+            a | b | output 
+            (a = 1, b = 2, output = b^2)
+            (a = 1, b = 2, output = b^2)
+            (a = 0, b = 0, output = b^2)
+            @test a + b == output
+        end
+        message = String(take!(io))
+        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n"
+    end
+    @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass, Test.Pass))
 
     results = Test.@testset NoThrowTestSet "Multiple Simultaneous Tests" begin 
         io = IOBuffer()
