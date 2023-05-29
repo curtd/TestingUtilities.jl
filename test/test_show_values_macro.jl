@@ -264,6 +264,11 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(all(a for a in arg1 if a > 0)), :arg1 => :T)
 
+            # Don't recurse into anonymous function definitions 
+            expr = Base.remove_linenums!(:(sprint((io,x)->show(io, x), abc)))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(sprint(arg1, arg2)), :arg1 => Base.remove_linenums!(:((io, x)->show(io, x))), :arg2 => :abc)
+
             # Filtering condition
             expr = :(all(ai > 2 for ai in a if mod(ai,2) == 0))
             result = TestingUtilities.computational_graph(expr)

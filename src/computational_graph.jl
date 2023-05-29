@@ -159,10 +159,8 @@ function _computational_graph!(current_graph, expr)
     children_kwargs = Any[]
     if expr isa Symbol 
         @goto exit
-    elseif Meta.isexpr(expr, :if)
+    elseif any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function))
         @goto exit
-    elseif Meta.isexpr(expr, :curly) 
-        @goto exit 
     else
         call_func, args, kwargs = parse_args_kwargs(expr)
     end
