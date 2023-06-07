@@ -58,7 +58,10 @@ end
             (; expected = "ab\nc", result = "ab", output = "expected = \"ab\\nc\"\nresult   = \"ab\"\n"),
             (; expected = "ab\nc", result = "ab\n", output = "expected = \"ab\\nc\"\nresult   = \"ab\\n\"\n"),
         ]
-        for (; expected, result, output) in test_data 
+        for data in test_data 
+            expected = data.expected 
+            result = data.result
+            output = data.output
             TestingUtilities.show_diff(expected, result; io)
             @test String(take!(io)) == output
         end
@@ -72,7 +75,10 @@ end
             (; expected = "ab\nc", result = "ab", output = "expected = \"\e[32mab\e[39m\e[31m\\nc\e[39m\"\nresult   = \"\e[32mab\e[39m\"\n"),
             (; expected = "ab\nc", result = "ab\n", output = "expected = \"\e[32mab\\n\e[39m\e[31mc\e[39m\"\nresult   = \"\e[32mab\\n\e[39m\"\n"),
         ]
-        for (; expected, result, output) in test_data 
+        for data in test_data 
+            expected = data.expected 
+            result = data.result
+            output = data.output
             TestingUtilities.show_diff(expected, result; io)
             @test String(take!(buf)) == output
         end
