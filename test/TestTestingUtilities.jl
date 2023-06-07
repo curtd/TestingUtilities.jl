@@ -16,7 +16,7 @@ module TestTestingUtilities
 
     include("test_settings.jl")
 
-    include("test_show_values_macro.jl")
+    include("test_Test_macro.jl")
     
     include("test_cases_macro.jl")
 

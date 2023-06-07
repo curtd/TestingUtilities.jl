@@ -1,6 +1,6 @@
 module TestingUtilities
 
-    using MLStyle, OrderedCollections, Test
+    using MLStyle, OrderedCollections, Preferences, Test
     
     export @Test, @test_cases   
 
@@ -10,11 +10,15 @@ module TestingUtilities
     
     include("settings.jl")
 
+    include("show_values.jl")
+    
     include("macro_util.jl")
 
     include("computational_graph.jl")
 
-    include("show_values_macro.jl")
+    include("macros/_macros.jl")
 
-    include("test_cases.jl")
+    function __init__()
+        load_show_diff_styles()
+    end
 end

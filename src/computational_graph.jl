@@ -10,29 +10,30 @@ is_splat_expr(expr) = expr isa Expr && expr.head === :...
 iscall(expr) = Meta.isexpr(expr, :call) && !isempty(expr.args)
 isref(expr) = Meta.isexpr(expr, :ref) && !isempty(expr.args)
 
-is_atom(x) = typeof(x) in (Bool, Float64, Int, String, QuoteNode)
-
-function is_atom_recursive(x)
+function is_atom(x)
     @switch x begin 
-        @case ::Bool || ::Float64 || ::Int || ::String || ::QuoteNode
+        @case ::Bool || ::Float64 || ::Int || ::String || ::QuoteNode || ::Char
             return true 
+        @case Expr(:$, arg) || Expr(:escape, arg)
+            return is_atom(arg)
         @case Expr(:kw, lhs, rhs)
-            return is_atom_recursive(rhs)
+            return is_atom(rhs)
         @case Expr(:tuple)
             return true 
-        @case Expr(:tuple, args...)
+        @case Expr(head, args...) 
+            head ∉ (:tuple, :&&, :||, :vect, :vcat, :hcat, :ncat) && return false
             is_lit = @switch args[1] begin 
                 @case Expr(:parameters, kwargs...)
                     for kwarg in kwargs
-                        !is_atom_recursive(kwarg.args[2]) && return false
+                        !is_atom(kwarg.args[2]) && return false
                     end
                     true
                 @case _
-                    is_atom_recursive(args[1])
+                    is_atom(args[1])
             end
             !is_lit && return false
             for arg in args[2:end] 
-                !is_atom_recursive(arg) && return false
+                !is_atom(arg) && return false
             end
             return true 
         @case _
