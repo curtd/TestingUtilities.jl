@@ -36,4 +36,48 @@ end
         @test_throws_compat ArgumentError "key (= f) not found in keys(kwargs)" TestingUtilities.fetch_kwarg_expr(kwargs; key=:f, default_value=nothing, expected_type=[Int,QuoteNode])
         @test TestingUtilities.fetch_kwarg_expr(kwargs; key=:f, default_value=nothing, expected_type=[Int,QuoteNode, Nothing]) |> isnothing
     end
+    @testset "show_value" begin 
+        io = IOBuffer()
+        k = :var
+        v = 1
+        TestingUtilities.show_value(v; io)
+        @test String(take!(io)) == "1\n"
+        TestingUtilities.show_value(k, v; io)
+        @test String(take!(io)) == "var = 1\n"
+
+        k = Expr(:call, :f, :x)
+        TestingUtilities.show_value(k, v; io)
+        @test String(take!(io)) == "`f(x)` = 1\n"
+    end
+    @testset "show_diff" begin 
+        io = IOBuffer()
+        test_data = [
+            (; expected = "", result = "", output = "expected = \"\"\nresult   = \"\"\n"),
+            (; expected = "abc", result = "", output = "expected = \"abc\"\nresult   = \"\"\n"),
+            (; expected = "abc", result = "ab", output = "expected = \"abc\"\nresult   = \"ab\"\n"),
+            (; expected = "ab\nc", result = "ab", output = "expected = \"ab\\nc\"\nresult   = \"ab\"\n"),
+            (; expected = "ab\nc", result = "ab\n", output = "expected = \"ab\\nc\"\nresult   = \"ab\\n\"\n"),
+        ]
+        for (; expected, result, output) in test_data 
+            TestingUtilities.show_diff(expected, result; io)
+            @test String(take!(io)) == output
+        end
+        TestingUtilities.set_show_diff_styles(; matching=:color => :green, differing=:color => :red)
+        buf = IOBuffer()
+        io = IOContext(buf, :color => true)
+        test_data = [
+            (; expected = "", result = "", output = "expected = \"\"\nresult   = \"\"\n"),
+            (; expected = "abc", result = "", output = "expected = \"\e[31mabc\e[39m\"\nresult   = \"\"\n"),
+            (; expected = "abc", result = "ab", output = "expected = \"\e[32mab\e[39m\e[31mc\e[39m\"\nresult   = \"\e[32mab\e[39m\"\n"),
+            (; expected = "ab\nc", result = "ab", output = "expected = \"\e[32mab\e[39m\e[31m\\nc\e[39m\"\nresult   = \"\e[32mab\e[39m\"\n"),
+            (; expected = "ab\nc", result = "ab\n", output = "expected = \"\e[32mab\\n\e[39m\e[31mc\e[39m\"\nresult   = \"\e[32mab\\n\e[39m\"\n"),
+        ]
+        for (; expected, result, output) in test_data 
+            TestingUtilities.show_diff(expected, result; io)
+            @test String(take!(buf)) == output
+        end
+        TestingUtilities.set_show_diff_styles(; matching=:bold => true, differing=:underline => true)
+        TestingUtilities.show_diff("abcd", "abef"; io)
+        @test String(take!(buf)) == "expected = \"\e[0m\e[1mab\e[22m\e[0m\e[4mcd\e[24m\"\nresult   = \"\e[0m\e[1mab\e[22m\e[0m\e[4mef\e[24m\"\n"
+    end
 end

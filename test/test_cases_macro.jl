@@ -1,5 +1,4 @@
-remove_quoting(expr::Expr) = Meta.isexpr(expr, :$) ? remove_quoting(expr.args[1]) : expr
-remove_quoting(expr) = expr
+append_char(x, c; n::Int) = x * repeat(c, n)
 
 @testset "@test_cases" begin 
     @testset "Util" begin 
@@ -124,4 +123,16 @@ remove_quoting(expr) = expr
     @test test_results_match(results, (Test.Error,))
     @test results[1].value == "ErrorException(\"asdf\")"
     
+    results = Test.@testset NoThrowTestSet "String comparison" begin 
+        io = IOBuffer()
+        @test_cases io=io begin 
+            a     | b   | output 
+            "abc" | 'd' | "abcd"
+            "abc" | 'e' | "abce"
+            @test append_char(a, b; n=3) == output
+        end
+        message = String(take!(io))
+        @test message ==  "Test `append_char(a, b; n = 3) == output` failed with values:\n------\nappend_char(a, b; n = 3) = \"abcddd\"\noutput                   = \"abcd\"\na = \"abc\"\nb = 'd'\n------\nappend_char(a, b; n = 3) = \"abceee\"\noutput                   = \"abce\"\na = \"abc\"\nb = 'e'\n"
+    end
+    @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass))
 end

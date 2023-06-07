@@ -217,9 +217,12 @@ macro test_cases(args...)
                 println(io, "Test `" * $(string(evaluate_test_expr)) *"` failed with values:")
                 for (num,t) in enumerate(failed_test_data[$i])
                     println(io, "------")
+                    already_shown = Set(Any[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))])
+                    $(generate_show_diff_expr(:already_shown, :t))
                     for (k,v) in pairs(t)
-                        if !(k === $(QuoteNode(_DEFAULT_TEST_EXPR_KEY)))
+                        if k ∉ already_shown
                             TestingUtilities.show_value(k,v; io)
+                            push!(already_shown, k)
                         end
                     end
                 end

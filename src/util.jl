@@ -10,3 +10,12 @@ end
 const imported_names_in_main = Ref(Set{Symbol}())
 
 update_imported_names_in_main() = imported_names_in_main[] = module_using_names(Main) 
+
+function unescape(x)
+    @switch x begin 
+        @case Expr(:$, arg) || Expr(:escape, arg)
+            return unescape(arg)
+        @case _ 
+            return x
+    end
+end

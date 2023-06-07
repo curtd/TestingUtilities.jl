@@ -22,21 +22,10 @@ multi_input_kwargs(x; y) = x*y
 
 const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
 
+append_char(x, c; n::Int) = x * repeat(c, n)
+
 @testset "@Test" begin 
     @testset "Util" begin 
-        @testset "show_value" begin 
-            io = IOBuffer()
-            k = :var
-            v = 1
-            TestingUtilities.show_value(v; io)
-            @test String(take!(io)) == "1\n"
-            TestingUtilities.show_value(k, v; io)
-            @test String(take!(io)) == "var = 1\n"
-
-            k = Expr(:call, :f, :x)
-            TestingUtilities.show_value(k, v; io)
-            @test String(take!(io)) == "`f(x)` = 1\n"
-        end
         @testset "set_failed_values_in_main" begin 
             @eval Main $(:(var1 = gensym(:var1); var2 = gensym(:var2); var3 = gensym(:var3)))
             var1_name = Main.var1 
@@ -201,12 +190,10 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             @test TestingUtilities._computational_graph!(graph, graph[TEST_EXPR_KEY]) == [:(setdiff(A, [:dates]))]
             @test graph == OrderedDict(TEST_EXPR_KEY => :(all(isequal(df[x],y) for x in arg1)), :arg1 => :(setdiff(A, [:dates])))
 
-            @test TestingUtilities._computational_graph!(graph, :(setdiff(A, [:dates]))) == [:A, :([:dates])]
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(all(isequal(df[x],y) for x in arg1)), :arg1 => :(setdiff(arg2, arg3)), :arg2 => :A, :arg3 => :([:dates]))
-
             # There are no children for expressions which are composed of literals/quote nodes 
-            @test TestingUtilities._computational_graph!(graph, :([:dates])) |> isempty
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(all(isequal(df[x],y) for x in arg1)), :arg1 => :(setdiff(arg2, arg3)), :arg2 => :A, :arg3 => :(Base.vect(:dates)))
+            @test TestingUtilities._computational_graph!(graph, :(setdiff(A, [:dates]))) == [:A]
+            @test graph == OrderedDict(TEST_EXPR_KEY => :(all(isequal(df[x],y) for x in arg1)), :arg1 => :(setdiff(arg2, [:dates])), :arg2 => :A)
+
 
             # Generators over multiple collections
             graph = OrderedDict{Any,Any}()
@@ -285,6 +272,10 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             expr = :(b isa Vector)
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(arg1 isa Vector), :arg1 => :(b))
+
+            expr = :(f('c', x))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(f('c', arg1)), :arg1 => :(x))
         end
     end
     @testset "@testset behaviour" begin 
@@ -296,6 +287,25 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             @test message == "Test `a == 2` failed with values:\na = $a\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
+
+        results = Test.@testset NoThrowTestSet "Comparison to string" begin 
+            io = IOBuffer()
+            a = "abc"
+            b = "abcd"
+            @Test io=io a == "def" 
+            message = String(take!(io))
+            @test message == "Test `a == \"def\"` failed with values:\nexpected = \"def\"\na        = \"abc\"\n"
+            @Test io=io a == b
+            message = String(take!(io))
+            @test message == "Test `a == b` failed with values:\na = \"abc\"\nb = \"abcd\"\n"
+            @Test io=io append_char(a,'d'; n=5) == b 
+            message = String(take!(io))
+            @test message == "Test `append_char(a, 'd'; n = 5) == b` failed with values:\nappend_char(a, 'd'; n = 5) = \"abcddddd\"\nb                          = \"abcd\"\na = \"abc\"\n"
+            @Test io=io isequal("abcde", append_char(a,'d'; n=3))
+            message = String(take!(io))
+            @test message == "Test `isequal(\"abcde\", append_char(a, 'd'; n = 3))` failed with values:\nexpected                   = \"abcde\"\nappend_char(a, 'd'; n = 3) = \"abcddd\"\na = \"abc\"\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
         results = Test.@testset NoThrowTestSet "Invalid Test" begin 
             io = IOBuffer()
@@ -430,6 +440,20 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
             @test message == "Test `multi_input_kwargs(x; y) == 4` failed with values:\n`multi_input_kwargs(x; y)` = 2\nx = $x\ny = $y\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
+
+        results = Test.@testset NoThrowTestSet "Short-circuiting operators" begin 
+            io = IOBuffer()
+            f = t->!t
+            x = true 
+            y = false 
+            @Test io=io f(x) && y
+            message = String(take!(io))
+            @test message == "Test `f(x) && y` failed with values:\n`f(x)` = false\ny = false\nx = true\n"
+            @Test io=io f(x) ? y : !x
+            message = String(take!(io))
+            @test message == "Test `f(x) ? y : !x` failed with values:\n`f(x)` = false\ny = false\n`!x` = false\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
         results = Test.@testset NoThrowTestSet "Splatting" begin
             a = (1, 2)

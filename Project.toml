@@ -6,9 +6,11 @@ version = "1.1.1"
 [deps]
 MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 MLStyle = "0.4"
 OrderedCollections = "1.6"
+Preferences = "1"
 julia = "1.6"

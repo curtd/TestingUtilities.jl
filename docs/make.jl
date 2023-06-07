@@ -19,9 +19,11 @@ makedocs(;
         canonical="https://curtd.github.io/TestingUtilities.jl",
         edit_link="main",
         assets=String[],
+        ansicolor=true
     ),
     pages=[
         "Home" => "index.md",
+        "Settings" => "settings.md",
         "API" => "api.md"
     ],
 )

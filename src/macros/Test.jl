@@ -1,4 +1,5 @@
 const _DEFAULT_TEST_EXPR_KEY = gensym(:_initial)
+const _SHOW_DIFF = gensym(:_show_diff)
 
 function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
     if should_define_vars_in_failed_tests(should_set_failed_values; force) && !isempty(failed_values)
@@ -19,25 +20,6 @@ function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, shou
     return nothing
 end
 
-function show_value(value; io=stderr, compact::Bool=true)
-    ctx = IOContext(io, :compact => compact)
-    println(ctx, repr(value))
-    flush(ctx)
-end
-
-function show_value(name, value; io=stderr, compact::Bool=true)
-    ctx = IOContext(io, :compact => compact)
-    if name isa Expr
-        print(ctx, "`")
-        Base.show_unquoted(ctx, name)
-        print(ctx, "`")
-    else
-        Base.show_unquoted(ctx, name)
-    end
-    print(ctx, " = ")
-    println(ctx, repr(value))
-    flush(ctx)
-end
 
 function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     call_func, args, kwargs = parse_args_kwargs(original_ex)
@@ -45,39 +27,78 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     test_expr = Expr(:block)
     args_to_use = []
     arg_count = 1
+    mapped_args = Dict()
     for arg in args 
         @switch arg begin 
             @case Expr(:generator, body, comprehension)
                 push!(args_to_use, Expr(:generator, esc_f(body), esc_f(comprehension)))
             @case ::Expr
-                if is_atom_recursive(arg)
+                if is_atom(arg)
                     push!(args_to_use, arg)
                 else
                     arg_name = Symbol("arg_$(arg_count)")
                     arg_count += 1
                     push!(test_expr.args, :(local $arg_name = $(esc_f(arg))), :($record_data_dict[$(QuoteNode(arg))] = $arg_name))
                     push!(args_to_use, arg_name)
+                    mapped_args[arg_name] = arg
                 end
             @case _ 
-                if !is_atom_recursive(arg) && !is_ignored_symbol(arg)
+                arg_is_atom = is_atom(arg)
+                if !arg_is_atom && !is_ignored_symbol(arg)
                     push!(test_expr.args, :($record_data_dict[$(QuoteNode(arg))] = $(esc_f(arg))))
                 end
-                push!(args_to_use, esc_f(arg))
+                if arg_is_atom
+                    push!(args_to_use, arg)
+                else
+                    push!(args_to_use, esc_f(arg))
+                end
         end
     end
     
     kwargs_to_use = []
     for (k, v) in kwargs
-        if !is_atom_recursive(v)
+        if !is_atom(v)
             arg_name = Symbol("arg_$(arg_count)")
             arg_count += 1
             push!(test_expr.args, :(local $arg_name = $(esc_f(v))), :($record_data_dict[:($k = $(QuoteNode(v)))] = $arg_name))
             push!(kwargs_to_use, Expr(:kw, k, arg_name))
+            mapped_args[arg_name] = v
         else
-            push!(kwargs_to_use, Expr(:kw, k, v))
+            push!(kwargs_to_use, Expr(:kw, k, esc_f(v)))
         end
     end
-    eval_test_expr = Expr(:call, esc_f(call_func))
+    show_diff_exprs = []
+    if call_func in (:isequal, :(==), :(Base.(==))) && length(args_to_use) == 2
+        first_arg, second_arg = args_to_use
+        first_arg_unesc = unescape(first_arg)
+        second_arg_unesc = unescape(second_arg)
+        show_diff_expr = Expr(:(=), Expr(:ref, record_data_dict, QuoteNode(_SHOW_DIFF)))
+        keys = []
+        if (!is_atom(first_arg_unesc) && !is_atom(second_arg_unesc)) 
+            push!(keys, QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)) )
+            push!(keys, QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)) )
+            push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
+        elseif first_arg_unesc isa String 
+            if second_arg_unesc isa String 
+                push!(show_diff_expr.args, :((keys=[:expected, :result], values=Any[$first_arg, $second_arg])))
+            else
+                push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)))
+                push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
+            end
+        elseif second_arg_unesc isa String 
+            push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)))
+            push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$second_arg, $first_arg])) )
+        end
+        if length(show_diff_expr.args) == 2
+            push!(show_diff_exprs, show_diff_expr)
+        end
+    end
+   
+    if call_func in (:&&, :||, :comparison, :if)
+        eval_test_expr = Expr(call_func)
+    else
+        eval_test_expr = Expr(:call, esc_f(call_func))
+    end
     if !isempty(kwargs_to_use)
         push!(eval_test_expr.args, Expr(:parameters, kwargs_to_use...))
     end
@@ -85,7 +106,27 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
         push!(eval_test_expr.args, args_to_use...)
     end
     push!(test_expr.args, :(local _result = $(eval_test_expr)), :($record_data_dict[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))] = _result))
+    append!(test_expr.args, show_diff_exprs)
     return test_expr
+end
+
+function generate_show_diff_expr(already_shown_name, failed_testdata_name)
+    return quote 
+        if haskey($(failed_testdata_name), $(QuoteNode(_SHOW_DIFF)))
+            data = $(failed_testdata_name)[$(QuoteNode(_SHOW_DIFF))]
+            key1, key2 = data.keys
+            value1, value2 = data.values
+            if value1 isa AbstractString && value2 isa AbstractString 
+                if TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io)
+                    push!($(already_shown_name), key1, key2)
+                end
+            end
+            push!($(already_shown_name), $(QuoteNode(_SHOW_DIFF)))
+            true
+        else 
+            false
+        end
+    end
 end
 
 """
@@ -125,53 +166,62 @@ macro Test(args...)
             push!(set_failed_test_data_args, :($(QuoteNode(k)) => $(esc(k))))
         end
     end
-    initial_values_expr = :(Testing.OrderedDict{Symbol,Any}( $( set_failed_test_data_args... )))
+    initial_values_expr = :(TestingUtilities.OrderedDict{Symbol,Any}( $( set_failed_test_data_args... )))
 
     show_values_expr = Expr(:block)
-    push!(show_values_expr.args, quote 
-        println(io, "Test `" * $(string(original_ex)) *"` failed with values:")
+    if Meta.isexpr(original_ex, :if, 3)
+        original_ex_str = "$(original_ex.args[1]) ? $(original_ex.args[2]) : $(original_ex.args[3])"
+    else
+        original_ex_str = string(original_ex)
+    end
 
+    push!(show_values_expr.args, quote 
+        println(io, "Test `" * $(original_ex_str) *"` failed with values:")
+        already_shown = Set(Any[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))])
+        $(generate_show_diff_expr(:already_shown, :failed_test_data))
         for (k,v) in pairs(failed_test_data)
-            if !(k === $(QuoteNode(_DEFAULT_TEST_EXPR_KEY)))
-                Testing.show_value(k, v; io)
+            if k ∉ already_shown && !(k === $(QuoteNode(_DEFAULT_TEST_EXPR_KEY)))
+                TestingUtilities.show_value(k, v; io)
+                push!(already_shown, k)
             end
         end
         for (k,v) in pairs(test_input_data)
-            if !haskey(failed_test_data, k)
-                Testing.show_value(k,v; io)
+            if k ∉ already_shown
+                TestingUtilities.show_value(k,v; io)
+                push!(already_shown, k)
             end
         end
     end)
 
     source = QuoteNode(__source__)
     return Base.remove_linenums!(quote 
-        local Testing = $(@__MODULE__)
+        local TestingUtilities = $(@__MODULE__)
 
         local io = $(esc(io_expr))
         local has_shown_failed_data = Ref{Bool}(false)
         local test_input_data = $(initial_values_expr)
-        local failed_test_data = Testing.OrderedDict{Any,Any}()
-        local show_all_test_data = let has_shown_failed_data=has_shown_failed_data, failed_test_data=failed_test_data, test_input_data=test_input_data, io=io, Testing=Testing 
+        local failed_test_data = TestingUtilities.OrderedDict{Any,Any}()
+        local show_all_test_data = let has_shown_failed_data=has_shown_failed_data, failed_test_data=failed_test_data, test_input_data=test_input_data, io=io, TestingUtilities=TestingUtilities 
             function()
                 if !has_shown_failed_data[]
                     $show_values_expr
-                    Testing.set_failed_values_in_main(test_input_data, $(should_set_failed_values))
+                    TestingUtilities.set_failed_values_in_main(test_input_data, $(should_set_failed_values))
                     has_shown_failed_data[] = true
                 end
             end
         end
         local test_result = try 
             $(test_expr)
-            Testing.Test.Returned(_result, _result, $(source))
+            TestingUtilities.Test.Returned(_result, _result, $(source))
         catch _e 
             show_all_test_data()
             _e isa InterruptException && rethrow()
-            Testing.Test.Threw(_e, Base.current_exceptions(), $(source))
+            TestingUtilities.Test.Threw(_e, Base.current_exceptions(), $(source))
         end
-        if Testing.test_did_not_succeed(test_result)
+        if TestingUtilities.test_did_not_succeed(test_result)
             show_all_test_data()
         end
-        Testing.Test.do_test(test_result, $(QuoteNode(original_ex)))
+        TestingUtilities.Test.do_test(test_result, $(QuoteNode(original_ex)))
     end)
 
 end
