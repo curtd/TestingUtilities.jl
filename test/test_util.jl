@@ -82,8 +82,10 @@ end
             TestingUtilities.show_diff(expected, result; io)
             @test String(take!(buf)) == output
         end
-        TestingUtilities.set_show_diff_styles(; matching=:bold => true, differing=:underline => true)
-        TestingUtilities.show_diff("abcd", "abef"; io)
-        @test String(take!(buf)) == "expected = \"\e[0m\e[1mab\e[22m\e[0m\e[4mcd\e[24m\"\nresult   = \"\e[0m\e[1mab\e[22m\e[0m\e[4mef\e[24m\"\n"
+        if VERSION ≥ v"1.7"
+            TestingUtilities.set_show_diff_styles(; matching=:bold => true, differing=:underline => true)
+            TestingUtilities.show_diff("abcd", "abef"; io)
+            @test String(take!(buf)) == "expected = \"\e[0m\e[1mab\e[22m\e[0m\e[4mcd\e[24m\"\nresult   = \"\e[0m\e[1mab\e[22m\e[0m\e[4mef\e[24m\"\n"
+        end
     end
 end
