@@ -100,3 +100,12 @@ Sample output:
     a = 0
     b = 0
 ```
+
+# String-Comparison Tests 
+If your test (using either of the above two macros) involves comparing the equality of two strings `x` and `y`, a failing test will show the common prefix of these strings (if present) printed in green, followed by the differing components of each string in red. E.g., 
+
+![Two strings whose common prefix is shown in green and whose differing suffixes are shown in red](docs/assets/string_diff1.png)
+
+If you're unable to discern colour differences between green + red, you can set the styles of the displayed differences using the `TestingUtilities.set_show_diff_styles(; matching, differing)` method. The keyword arguments can be set to any `key => value` pair accepted by `Base.printstyled`, e.g.,
+
+![Two strings whose common prefix is shown in boldface and whose differing suffixes are shown as underlined](docs/assets/string_diff2.png)
