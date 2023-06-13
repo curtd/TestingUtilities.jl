@@ -104,6 +104,7 @@ Note: The `variableᵢ` can involve expressions that refer to `variableⱼ` for 
 Here, each test condition expression `condᵢ` evalutes to a `Bool` and contains zero or more values from `variable₁, variable₂, ..., variableₙ `.
 """
 macro test_cases(args...)
+    isempty(args) && error("`@test_cases` must have at least one argument")
     kwargs = parse_kwarg_expr(args[1:end-1]...)
     io_expr = fetch_kwarg_expr(kwargs; key=:io, expected_type=[Symbol, Expr], default_value=:(stderr))
 

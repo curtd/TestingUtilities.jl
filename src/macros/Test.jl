@@ -145,6 +145,7 @@ the names + values of the bare symbols in `test_expr` are set in the `Main` modu
 
 """
 macro Test(args...)
+    isempty(args) && error("`@Test` must have at least one argument")
     kwargs = parse_kwarg_expr(args[1:end-1]...)
     io_expr = fetch_kwarg_expr(kwargs; key=:io, expected_type=[Symbol, Expr], default_value=:(stderr))
     should_set_failed_values = fetch_kwarg_expr(kwargs; key=:set_failed_values, expected_type=[Bool, Nothing], default_value=nothing)
