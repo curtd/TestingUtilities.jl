@@ -1,7 +1,7 @@
 const _DEFAULT_TEST_EXPR_KEY = gensym(:_initial)
 const _SHOW_DIFF = gensym(:_show_diff)
 
-function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
+function set_failed_values_in_main(failed_values::AbstractDict{<:Any,<:Any}, should_set_failed_values; force::Bool=false, _module::Module=Main)
     if should_define_vars_in_failed_tests(should_set_failed_values; force) && !isempty(failed_values)
         if isempty(imported_names_in_main[])
             update_imported_names_in_main()
@@ -9,6 +9,7 @@ function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, shou
         _imported_names_in_main = imported_names_in_main[]
         set_failed_values_sub_expr = Expr(:block)
         for (key, value) in pairs(failed_values)
+            !(key isa Symbol) && continue
             if key ∉ _imported_names_in_main
                 push!(set_failed_values_sub_expr.args, Expr(:(=), key, value))
             elseif testing_setting(EmitWarnings)
@@ -20,6 +21,7 @@ function set_failed_values_in_main(failed_values::AbstractDict{Symbol,Any}, shou
     return nothing
 end
 
+is_input_value(x) = x isa Symbol || Meta.isexpr(x, :., 2)
 
 function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     call_func, args, kwargs = parse_args_kwargs(original_ex)
@@ -153,7 +155,7 @@ macro Test(args...)
     original_ex = args[end]
     
     comp_graph = computational_graph(original_ex)
-    all_input_values = [v for v in values(comp_graph) if v isa Symbol]
+    all_input_values = [v for v in values(comp_graph) if is_input_value(v)]
    
     if original_ex isa Symbol 
         test_expr = Expr(:block, :(local _result = $(esc(original_ex))), :(failed_test_data[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))] = _result))
@@ -167,7 +169,7 @@ macro Test(args...)
             push!(set_failed_test_data_args, :($(QuoteNode(k)) => $(esc(k))))
         end
     end
-    initial_values_expr = :(TestingUtilities.OrderedDict{Symbol,Any}( $( set_failed_test_data_args... )))
+    initial_values_expr = :(TestingUtilities.OrderedDict{Any,Any}( $( set_failed_test_data_args... )))
 
     show_values_expr = Expr(:block)
     if Meta.isexpr(original_ex, :if, 3)

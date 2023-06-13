@@ -155,24 +155,32 @@ function _computational_graph_generator_expr!(arg_counter, current_graph, childr
     end
 end
 
+function args_kwargs(expr)
+    ((expr isa Symbol) || any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function))) && @goto exit_early
+        
+    call_func, args, kwargs = parse_args_kwargs(expr)
+
+    (isnothing(call_func) || call_func === :... || call_func === :.) && @goto exit_early
+    return (call_func, args, kwargs), false
+
+    @label exit_early 
+    return nothing, true
+end
+
 function _computational_graph!(current_graph, expr)
     children = Any[]
     children_kwargs = Any[]
-    if expr isa Symbol 
-        @goto exit
-    elseif any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function))
-        @goto exit
-    else
-        call_func, args, kwargs = parse_args_kwargs(expr)
-    end
-    (isnothing(call_func) || call_func === :...) && @goto exit
+
+    parsed_values, exit_early = args_kwargs(expr)
+    exit_early && @goto exit 
+    call_func, args, kwargs = parsed_values 
     matching_key = find_in_current_graph(current_graph, expr)
     
     arg_counter = ArgCounter(current_graph)
     new_args = []
     new_kwargs = []
     for arg in args
-        should_ignore_sym = is_atom(arg) || is_reserved_syntax(arg) || is_ignored_symbol(arg) 
+        should_ignore_sym = is_atom(arg) || is_reserved_syntax(arg) || is_ignored_symbol(arg)
         if !should_ignore_sym && (arg isa Symbol || arg isa Expr)
             if Meta.isexpr(arg, :generator)
                 new_arg_expr = _computational_graph_generator_expr!(arg_counter, current_graph, children, arg)

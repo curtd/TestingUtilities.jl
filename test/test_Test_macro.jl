@@ -209,6 +209,14 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(arg1 == 5), :arg1 => :a)
 
+            expr = :(f(A.b, x, y))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(f(arg1, arg2, arg3)), :arg1 => :(A.b), :arg2 => :x, :arg3 => :y)
+
+            expr = :(f(A.b(z), x, y))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(f(arg1, arg2, arg3)), :arg1 => :(A.b(arg4)), :arg2 => :x, :arg3 => :y, :arg4 => :z)
+
             expr = :(f(a, b; c, d=g(x,y)))
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(f(arg1, arg2; c=kwarg3, d=kwarg4)), :arg1 => :a, :arg2 => :b, :kwarg3 => :c, :kwarg4 => :(g(arg5, arg6)), :arg5 => :x, :arg6 => :y)
@@ -243,7 +251,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
 
             expr = :(f[a.b])
             result = TestingUtilities.computational_graph(expr)
-            @test result == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2]), :arg1 => :f, :arg2 => :(arg3.b), :arg3 => :a )
+            @test result == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2]), :arg1 => :f, :arg2 => :(a.b) )
 
             # Don't recurse into generators, only grab their body expression
             # No filtering condition
@@ -364,7 +372,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = (; b=2)
             @Test io=io isnothing(sometimes_throws(a.b)) 
             message = String(take!(io))
-            @test message == "Test `isnothing(sometimes_throws(a.b))` failed with values:\na = $a\n"
+            @test message == "Test `isnothing(sometimes_throws(a.b))` failed with values:\n`a.b` = $(a.b)\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass))
 
