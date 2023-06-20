@@ -101,11 +101,26 @@ Sample output:
     b = 0
 ```
 
-# String-Comparison Tests 
-If your test (using either of the above two macros) involves comparing the equality of two strings `x` and `y`, a failing test will show the common prefix of these strings (if present) printed in green, followed by the differing components of each string in red. E.g., 
+# Equality-Comparison Tests 
+If your test (using either of the above two macros) involves comparing the equality of two values `x::T` and `y::T`, if `T` is one of the types specified below, a failing test will show a nicely formatted message outlining the specific differences between them. 
+
+## String 
+If `x` and `y` are of type `AbstractString`, a failing test will show the common prefix of these strings (if present) printed in green, followed by the differing components of each string in red. E.g., 
 
 ![Two strings whose common prefix is shown in green and whose differing suffixes are shown in red](docs/assets/string_diff1.png)
 
 If you're unable to discern colour differences between green + red, you can set the styles of the displayed differences using the `TestingUtilities.set_show_diff_styles(; matching, differing)` method. The keyword arguments can be set to any `key => value` pair accepted by `Base.printstyled`, e.g.,
 
 ![Two strings whose common prefix is shown in boldface and whose differing suffixes are shown as underlined](docs/assets/string_diff2.png)
+
+## DataFrames 
+If `x` and `y` are of type `AbstractDataFrame`, a failing test will show the reason that the two dataframes are not equal. E.g., 
+
+- `x` and `y` do not have the same columns
+![Two dataframes with differing columns](docs/assets/df_diff1.png)
+
+- `x` and `y` have differing number of rows
+![Two dataframes with differing number of rows](docs/assets/df_diff2.png)
+
+- `x` and `y` have the same number of rows and the same columns, but differing values
+![Two dataframes with differing values](docs/assets/df_diff3.png)

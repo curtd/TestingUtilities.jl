@@ -19,7 +19,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test a + b == output
         end
         message = String(take!(io))
-        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
+        @test message == "Test `a + b == output` failed:\nValues:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Pass))
 
@@ -35,7 +35,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test a + b == output
         end
         message = String(take!(io))
-        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
+        @test message == "Test `a + b == output` failed:\nValues:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Pass))
 
@@ -49,7 +49,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test a + b == output
         end
         message = String(take!(io))
-        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
+        @test message == "Test `a + b == output` failed:\nValues:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Pass))
 
@@ -63,7 +63,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test a + b == output
         end
         message = String(take!(io))
-        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
+        @test message == "Test `a + b == output` failed:\nValues:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 0\noutput = 1\na = 0\nb = 0\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Pass))
 
@@ -77,7 +77,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test a + b == output
         end
         message = String(take!(io))
-        @test message == "Test `a + b == output` failed with values:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n"
+        @test message == "Test `a + b == output` failed:\nValues:\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n------\n`a + b` = 3\noutput = 4\na = 1\nb = 2\n"
     end
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass, Test.Pass))
 
@@ -92,7 +92,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test b^2 + 1 == y
         end
         message = String(take!(io))
-        @test message == "Test `a + b == y` failed with values:\n------\n`a + b` = 3\ny = 4\na = 1\nb = 2\n------\n`a + b` = 0\ny = 1\na = 0\nb = 0\nTest `b ^ 2 + 1 == y` failed with values:\n------\n`b ^ 2 + 1` = 5\ny = 3\na = 1\nb = 2\n------\n`b ^ 2 + 1` = 5\ny = 4\na = 1\nb = 2\n"
+        @test message == "Test `a + b == y` failed:\nValues:\n------\n`a + b` = 3\ny = 4\na = 1\nb = 2\n------\n`a + b` = 0\ny = 1\na = 0\nb = 0\nTest `b ^ 2 + 1 == y` failed:\nValues:\n------\n`b ^ 2 + 1` = 5\ny = 3\na = 1\nb = 2\n------\n`b ^ 2 + 1` = 5\ny = 4\na = 1\nb = 2\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Fail, Test.Fail, Test.Fail, Test.Fail, Test.Pass, Test.Pass))
 
@@ -107,7 +107,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test error(string(y))
         end
         message = String(take!(io))
-        @test message == "Test `a + b == y` failed with values:\n------\n`a + b` = 3\ny = 4\na = 1\nb = 2\n------\n`a + b` = 0\ny = 1\na = 0\nb = 0\nTest `error(string(y))` failed with values:\n------\n`string(y)` = \"3\"\na = 1\nb = 2\ny = 3\n------\n`string(y)` = \"4\"\na = 1\nb = 2\ny = 4\n------\n`string(y)` = \"1\"\na = 0\nb = 0\ny = 1\n"
+        @test message == "Test `a + b == y` failed:\nValues:\n------\n`a + b` = 3\ny = 4\na = 1\nb = 2\n------\n`a + b` = 0\ny = 1\na = 0\nb = 0\nTest `error(string(y))` failed:\nValues:\n------\n`string(y)` = \"3\"\na = 1\nb = 2\ny = 3\n------\n`string(y)` = \"4\"\na = 1\nb = 2\ny = 4\n------\n`string(y)` = \"1\"\na = 0\nb = 0\ny = 1\n"
     end
     @test test_results_match(results, (Test.Pass, Test.Error, Test.Fail, Test.Error, Test.Fail, Test.Error, Test.Pass))
 
@@ -132,7 +132,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test append_char(a, b; n=3) == output
         end
         message = String(take!(io))
-        @test message ==  "Test `append_char(a, b; n = 3) == output` failed with values:\n------\nappend_char(a, b; n = 3) = \"abcddd\"\noutput                   = \"abcd\"\na = \"abc\"\nb = 'd'\n------\nappend_char(a, b; n = 3) = \"abceee\"\noutput                   = \"abce\"\na = \"abc\"\nb = 'e'\n"
+        @test message ==  "Test `append_char(a, b; n = 3) == output` failed:\nValues:\n------\nappend_char(a, b; n = 3) = \"abcddd\"\noutput                   = \"abcd\"\na = \"abc\"\nb = 'd'\n------\nappend_char(a, b; n = 3) = \"abceee\"\noutput                   = \"abce\"\na = \"abc\"\nb = 'e'\n"
     end
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass))
 end

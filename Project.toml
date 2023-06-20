@@ -9,8 +9,21 @@ OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[weakdeps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
+
+[extensions]
+TestingUtilitiesDataFramesExt = ["DataFrames", "PrettyTables"]
+
 [compat]
+DataFrames = "1"
 MLStyle = "0.4"
 OrderedCollections = "1.6"
 Preferences = "1"
+PrettyTables = "2"
 julia = "1.6"
+
+[extras]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"

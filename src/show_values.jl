@@ -18,43 +18,77 @@ function show_value(name, value; io=stderr, compact::Bool=true)
     flush(ctx)
 end
 
-function show_escape_newlines(io, str::AbstractString; has_colour::Bool=false, is_matching::Bool)
-    replaced_str = replace(str, "\n" => "\\n")
+struct PrintAligned 
+    header_strs::Vector{String}
+    widths::Vector{Int}
+    max_width::Int
+    separator::String 
+    function PrintAligned(header_strs::Vector{String}; separator::String=" = ")
+        widths = textwidth.(header_strs)
+        max_width = maximum(widths)
+        return new(header_strs, widths, max_width, separator) 
+    end
+end
+PrintAligned(header_strs::String...; kwargs...) = PrintAligned(collect(header_strs); kwargs...)
+
+function (p::PrintAligned)(io::IO, i::Int)
+    (i < 0 || i > length(p.header_strs)) && throw(BoundsError(p.header_strs, i))
+    print(io, p.header_strs[i], repeat(' ', p.max_width-p.widths[i]), p.separator)
+    return nothing
+end
+Base.eachindex(p::PrintAligned) = eachindex(p.header_strs)
+
+function show_maybe_styled(io, str::AbstractString; has_colour::Bool=false, is_matching::Bool)
     if has_colour 
         if is_matching
             style = NamedTuple(show_diff_matching_style)
         else
             style = NamedTuple(show_diff_differing_style)
         end
-        printstyled(io, replaced_str; style...)
+        printstyled(io, str; style...)
     else
-        print(io, replaced_str)
+        print(io, str)
     end
+    return nothing
 end
 
-function show_diff(expected::AbstractString, result::AbstractString; expected_name="expected", result_name="result", io=stderr, compact::Bool=true)
-    ctx = IOContext(io, :compact => compact)
-    has_colour = get(io, :color, false)
-    if startswith(expected, result)
-        common_prefix_length = length(result)
-        common_prefix = result
-    elseif startswith(result, expected)
-        common_prefix_length = length(expected)
-        common_prefix = expected
-    else
-        common_prefix_length = something(findfirst(i->expected[i] != result[i], 1:min(length(expected), length(result))), 1)-1
-        common_prefix = expected[1:common_prefix_length]
+function show_escape_newlines(io, str::AbstractString; has_colour::Bool=false, is_matching::Bool)
+    replaced_str = replace(str, "\n" => "\\n")
+    return show_maybe_styled(io, replaced_str; has_colour, is_matching)
+end
+
+function common_prefix(a::AbstractString, b::AbstractString)
+    a_itr, b_itr = eachindex(a), eachindex(b)
+    i, j = iterate(a_itr), iterate(b_itr)
+    common_prefix_length = 0
+    while true 
+        (i === nothing || j === nothing) && break 
+        a[i[1]] == b[j[1]] || break 
+        common_prefix_length += 1
+        i, j = iterate(a_itr, i[2]), iterate(b_itr, j[2])
     end
-    expected_name_str = string(expected_name)
-    expected_width = textwidth(expected_name_str)
-    result_name_str = string(result_name)
-    result_width = textwidth(result_name_str)
-    longest_width = max(expected_width, result_width)
-    for (text, text_name, width) in ((expected, expected_name_str, expected_width), (result, result_name_str, result_width))
-        print(ctx, text_name, repeat(' ', longest_width-width), " = ")
+    prefix = SubString(a, 1, common_prefix_length)
+    a_rest = !isnothing(i) ? (@view a[i[1]:end]) : nothing 
+    b_rest = !isnothing(j) ? (@view b[j[1]:end]) : nothing 
+    return prefix, a_rest, b_rest
+end
+
+function show_diff(expected::AbstractString, result::AbstractString; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, print_values_header::Union{PrintHeader,Nothing}=nothing)
+    ctx = IOContext(io, :compact => compact)
+    if !isnothing(print_values_header) && !has_printed(print_values_header)
+        print_values_header(ctx)
+    end
+    has_colour = get(io, :color, false)
+    prefix, expected_rest, result_rest = common_prefix(expected, result) 
+
+    p = PrintAligned(string(expected_name), string(result_name); separator=" = ")
+    for (rest, i) in zip((expected_rest, result_rest), eachindex(p))
+        p(ctx, i)
         print(ctx, '\"')
-        show_escape_newlines(ctx, common_prefix; has_colour, is_matching=true)
-        show_escape_newlines(ctx, text[common_prefix_length+1:end]; has_colour, is_matching=false)
+        show_escape_newlines(ctx, prefix; has_colour, is_matching=true)
+        if !isnothing(rest)
+            show_escape_newlines(ctx, rest; has_colour, is_matching=false)
+        end
         println(ctx, '\"')
     end
     flush(ctx)
