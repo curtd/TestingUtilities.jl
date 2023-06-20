@@ -19,3 +19,18 @@ function unescape(x)
             return x
     end
 end
+
+struct PrintHeader
+    header::String
+    printed::Ref{Bool}
+end
+PrintHeader(str::String) = PrintHeader(str, Ref(false))
+
+has_printed(p::PrintHeader) = p.printed[]
+function (p::PrintHeader)(io::IO)
+    if !has_printed(p)
+        println(io, p.header)
+        p.printed[] = true
+    end
+    return p.printed[]
+end

@@ -68,6 +68,9 @@ function parse_load_styles(str::AbstractString)
     return kwargs
 end
 
+_show_diff_matching_style_default() = [:color => :green]
+_show_diff_differing_style_default() = [:color => :red]
+
 function load_show_diff_styles(; 
     matching_style::String = "", 
     differing_style::String = "")
@@ -108,3 +111,31 @@ function set_show_diff_styles(; matching::Union{Pair, Vector{<:Pair}}=show_diff_
     load_show_diff_styles()
     return nothing
 end
+
+reset_show_diff_styles() = set_show_diff_styles(; matching=_show_diff_matching_style_default(), differing=_show_diff_differing_style_default())
+
+const show_diff_df_max_nrows_ncols = Ref((10, 10))
+
+function load_show_diff_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
+    if max_num_rows ≤ 0
+        max_num_rows = max(@load_preference("show_diff_df_max_num_rows", 10)::Int, 1)
+    end
+    if max_num_cols ≤ 0
+        max_num_cols = max(@load_preference("show_diff_df_max_num_cols", 10)::Int, 1)
+    end
+    show_diff_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
+    return nothing
+end
+
+function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
+    @set_preferences!("show_diff_df_max_num_rows" => max_num_rows)
+    @set_preferences!("show_diff_df_max_num_cols" => max_num_cols)
+
+    load_show_diff_df_max_rows_cols()
+    return nothing
+end
+
+_show_diff_df_max_nrows_default() = 10 
+_show_diff_df_max_ncols_default() = 10 
+
+reset_show_diff_df_opts() = set_show_diff_df_opts(; max_num_rows=_show_diff_df_max_nrows_default(), max_num_cols=_show_diff_df_max_ncols_default())

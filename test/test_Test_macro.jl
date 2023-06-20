@@ -292,7 +292,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = 1
             @Test io=io a == 2 
             message = String(take!(io))
-            @test message == "Test `a == 2` failed with values:\na = $a\n"
+            @test message == "Test `a == 2` failed:\nValues:\na = $a\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
@@ -302,29 +302,52 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             b = "abcd"
             @Test io=io a == "def" 
             message = String(take!(io))
-            @test message == "Test `a == \"def\"` failed with values:\nexpected = \"def\"\na        = \"abc\"\n"
+            @test message == "Test `a == \"def\"` failed:\nValues:\nexpected = \"def\"\na        = \"abc\"\n"
             @Test io=io a == b
             message = String(take!(io))
-            @test message == "Test `a == b` failed with values:\na = \"abc\"\nb = \"abcd\"\n"
+            @test message == "Test `a == b` failed:\nValues:\na = \"abc\"\nb = \"abcd\"\n"
             @Test io=io append_char(a,'d'; n=5) == b 
             message = String(take!(io))
-            @test message == "Test `append_char(a, 'd'; n = 5) == b` failed with values:\nappend_char(a, 'd'; n = 5) = \"abcddddd\"\nb                          = \"abcd\"\na = \"abc\"\n"
+            @test message == "Test `append_char(a, 'd'; n = 5) == b` failed:\nValues:\nappend_char(a, 'd'; n = 5) = \"abcddddd\"\nb                          = \"abcd\"\na = \"abc\"\n"
             @Test io=io isequal("abcde", append_char(a,'d'; n=3))
             message = String(take!(io))
-            @test message == "Test `isequal(\"abcde\", append_char(a, 'd'; n = 3))` failed with values:\nexpected                   = \"abcde\"\nappend_char(a, 'd'; n = 3) = \"abcddd\"\na = \"abc\"\n"
+            @test message == "Test `isequal(\"abcde\", append_char(a, 'd'; n = 3))` failed:\nValues:\nexpected                   = \"abcde\"\nappend_char(a, 'd'; n = 3) = \"abcddd\"\na = \"abc\"\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+
+        if run_df_tests
+            results = Test.@testset NoThrowTestSet "Comparison to DataFrame" begin 
+                io = IOBuffer()
+                a = DataFrame(:b => [1,2,3], :c => [1.0, 2.0, 3.0])
+                b = DataFrame(:d => [1,2,3], :c => [1.0, 2.0, 3.0])
+                c = DataFrame(:b => [1,-2,3], :c => [-1.0, 2.0, 3.0])
+                a2 = a[1:2,:]
+                
+                @Test io=io a == b 
+                message = String(take!(io))
+                @test message == "Test `a == b` failed:\nReason: `propertynames(a) != propertynames(b)`\n`propertynames(a)` = {:c, :b}\n`propertynames(b)` = {:c, :d}\n"
+
+                @Test io=io a == a2
+                message = String(take!(io))
+                @test message == "Test `a == a2` failed:\nReason: `nrow(a) != nrow(a2)`\n`nrow(a)`  = 3\n`nrow(a2)` = 2\n"
+
+                @Test io=io a == c 
+                message = String(take!(io))
+                @test message == "Test `a == c` failed:\nReason: Mismatched values\n┌───────────────────┬────────┬───────┬─────────┐\n│           row_num │     df │     b │       c │\n│ U{Nothing, Int64} │ Symbol │ Int64 │ Float64 │\n├───────────────────┼────────┼───────┼─────────┤\n│                 1 │      a │     1 │     1.0 │\n│                   │      c │     1 │    -1.0 │\n│                 2 │      a │     2 │     2.0 │\n│                   │      c │    -2 │     2.0 │\n└───────────────────┴────────┴───────┴─────────┘\n"
+            end
+            @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+        end
 
         results = Test.@testset NoThrowTestSet "Invalid Test" begin 
             io = IOBuffer()
             a = 1
             @Test io=io a 
             message = String(take!(io))
-            @test message == "Test `a` failed with values:\n"
+            @test message == "Test `a` failed:\n"
 
             @Test io=io a^2
             message = String(take!(io))
-            @test message == "Test `a ^ 2` failed with values:\na = $a\n"
+            @test message == "Test `a ^ 2` failed:\nValues:\na = $a\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass))
 
@@ -333,10 +356,10 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             b = Dict{String,Int}
             @Test io=io typeof(b) <: Vector 
             message = String(take!(io))
-            @test message == "Test `typeof(b) <: Vector` failed with values:\n`typeof(b)` = DataType\nb = Dict{String, Int64}\n"
+            @test message == "Test `typeof(b) <: Vector` failed:\nValues:\n`typeof(b)` = DataType\nb = Dict{String, Int64}\n"
             @Test io=io b() isa Vector
             message = String(take!(io))
-            @test message == "Test `b() isa Vector` failed with values:\n`b()` = Dict{String, Int64}()\n"
+            @test message == "Test `b() isa Vector` failed:\nValues:\n`b()` = Dict{String, Int64}()\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
@@ -354,7 +377,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = 1
             @Test io=io isnothing(sometimes_throws(a)) 
             message = String(take!(io))
-            @test message == "Test `isnothing(sometimes_throws(a))` failed with values:\na = $a\n"
+            @test message == "Test `isnothing(sometimes_throws(a))` failed:\nValues:\na = $a\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass))
 
@@ -363,7 +386,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = 2
             @Test io=io isnothing(sometimes_throws(a^2)) 
             message = String(take!(io))
-            @test message == "Test `isnothing(sometimes_throws(a ^ 2))` failed with values:\na = $a\n"
+            @test message == "Test `isnothing(sometimes_throws(a ^ 2))` failed:\nValues:\na = $a\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass))
 
@@ -372,7 +395,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = (; b=2)
             @Test io=io isnothing(sometimes_throws(a.b)) 
             message = String(take!(io))
-            @test message == "Test `isnothing(sometimes_throws(a.b))` failed with values:\n`a.b` = $(a.b)\n"
+            @test message == "Test `isnothing(sometimes_throws(a.b))` failed:\nValues:\n`a.b` = $(a.b)\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass))
 
@@ -382,10 +405,10 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             b = -5:-1
             @Test io=io all( ai < 5 for ai in a )
             message = String(take!(io))
-            @test message == "Test `all((ai < 5 for ai = a))` failed with values:\na = $a\n"
+            @test message == "Test `all((ai < 5 for ai = a))` failed:\nValues:\na = $a\n"
             @Test io=io all( ai < 5 for ai in vcat(a, b) if mod(ai, 2) == 0)
             message = String(take!(io))
-            @test message == "Test `all((ai < 5 for ai = vcat(a, b) if mod(ai, 2) == 0))` failed with values:\na = $a\nb = $b\n"
+            @test message == "Test `all((ai < 5 for ai = vcat(a, b) if mod(ai, 2) == 0))` failed:\nValues:\na = $a\nb = $b\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
@@ -394,7 +417,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = repeat([1], 1000)
             @Test io=io isnothing(sometimes_throws(a[1]^2)) 
             message = String(take!(io))
-            @test message == "Test `isnothing(sometimes_throws(a[1] ^ 2))` failed with values:\na = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …\n"
+            @test message == "Test `isnothing(sometimes_throws(a[1] ^ 2))` failed:\nValues:\na = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…\n"
         end
         @test test_results_match(results, (Test.Error, Test.Pass))
 
@@ -410,7 +433,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = 2
             @Test io=io set_failed_values=true sometimes_fails(a, g(b))
             message = String(take!(io))
-            @test message == "Test `sometimes_fails(a, g(b))` failed with values:\na = $a\n`g(b)` = $(g(b))\nb = $b\n"
+            @test message == "Test `sometimes_fails(a, g(b))` failed:\nValues:\na = $a\n`g(b)` = $(g(b))\nb = $b\n"
         end
         @test test_results_match(results, (Test.Pass, Test.Pass, Test.Fail, Test.Pass))
 
@@ -426,7 +449,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = [1, 2, 3]
             @Test io=io a[2] == 3
             message = String(take!(io))
-            @test message == "Test `a[2] == 3` failed with values:\n`a[2]` = 2\na = $a\n"
+            @test message == "Test `a[2] == 3` failed:\nValues:\n`a[2]` = 2\na = $a\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
@@ -435,7 +458,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = [1, 2, 3]
             @Test io=io a[begin] == 3
             message = String(take!(io))
-            @test message == "Test `a[begin] == 3` failed with values:\n`a[begin]` = 1\na = $a\n"
+            @test message == "Test `a[begin] == 3` failed:\nValues:\n`a[begin]` = 1\na = $a\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
@@ -445,7 +468,12 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             y = 2
             @Test io=io multi_input_kwargs(x; y) == 4
             message = String(take!(io))
-            @test message == "Test `multi_input_kwargs(x; y) == 4` failed with values:\n`multi_input_kwargs(x; y)` = 2\nx = $x\ny = $y\n"
+            @test message == "Test `multi_input_kwargs(x; y) == 4` failed:\nValues:\n`multi_input_kwargs(x; y)` = 2\nx = $x\ny = $y\n"
+
+            z = 2
+            @Test io=io multi_input_kwargs(x; y=z) == 4
+            message = String(take!(io))
+            @test message == "Test `multi_input_kwargs(x; y = z) == 4` failed:\nValues:\n`multi_input_kwargs(x; y = z)` = 2\nx = $x\nz = $y\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
@@ -456,10 +484,10 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             y = false 
             @Test io=io f(x) && y
             message = String(take!(io))
-            @test message == "Test `f(x) && y` failed with values:\n`f(x)` = false\ny = false\nx = true\n"
+            @test message == "Test `f(x) && y` failed:\nValues:\n`f(x)` = false\ny = false\nx = true\n"
             @Test io=io f(x) ? y : !x
             message = String(take!(io))
-            @test message == "Test `f(x) ? y : !x` failed with values:\n`f(x)` = false\ny = false\n`!x` = false\n"
+            @test message == "Test `f(x) ? y : !x` failed:\nValues:\n`f(x)` = false\ny = false\n`!x` = false\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
@@ -473,15 +501,15 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             a = (2, 2)
             @Test io=io multi_valued(a) == (1, 4)
             message = String(take!(io))
-            @test message == "Test `multi_valued(a) == (1, 4)` failed with values:\n`multi_valued(a)` = (2, 4)\na = $a\n"
+            @test message == "Test `multi_valued(a) == (1, 4)` failed:\nValues:\n`multi_valued(a)` = (2, 4)\na = $a\n"
 
             @Test io=io multi_valued((a,)...) == (1, 4)
             message = String(take!(io))
-            @test message == "Test `multi_valued((a,)...) == (1, 4)` failed with values:\n`multi_valued((a,)...)` = (2, 4)\na = $a\n"
+            @test message == "Test `multi_valued((a,)...) == (1, 4)` failed:\nValues:\n`multi_valued((a,)...)` = (2, 4)\na = $a\n"
 
             @Test io=io multi_input((a.^2)...) == 5
             message = String(take!(io))
-            @test message == "Test `multi_input(a .^ 2...) == 5` failed with values:\n`multi_input(a .^ 2...)` = 8\na = (2, 2)\n"
+            @test message == "Test `multi_input(a .^ 2...) == 5` failed:\nValues:\n`multi_input(a .^ 2...)` = 8\na = (2, 2)\n"
         end
         @test test_results_match(results, (Test.Pass, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
         
@@ -490,7 +518,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             io = IOBuffer()
             @Test io=io all(ai > 2 for ai in a if mod(ai,2) == 0)
             message = String(take!(io))
-            @test message == "Test `all((ai > 2 for ai = a if mod(ai, 2) == 0))` failed with values:\na = $a\n"
+            @test message == "Test `all((ai > 2 for ai = a if mod(ai, 2) == 0))` failed:\nValues:\na = $a\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
@@ -511,7 +539,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
                 end
             end
             message = String(take!(io))
-            @test message == "Test `sometimes_fails(a, g(b))` failed with values:\na = 1\n`g(b)` = 6\nb = 3\n"
+            @test message == "Test `sometimes_fails(a, g(b))` failed:\nValues:\na = 1\n`g(b)` = 6\nb = 3\n"
         end
         @test test_results_match(results, (Test.Pass, Test.Fail, Test.Pass))
 

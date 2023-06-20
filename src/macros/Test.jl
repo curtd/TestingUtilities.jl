@@ -62,7 +62,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
         if !is_atom(v)
             arg_name = Symbol("arg_$(arg_count)")
             arg_count += 1
-            push!(test_expr.args, :(local $arg_name = $(esc_f(v))), :($record_data_dict[:($k = $(QuoteNode(v)))] = $arg_name))
+            push!(test_expr.args, :(local $arg_name = $(esc_f(v))), :($record_data_dict[($(QuoteNode(k)),$(QuoteNode(v)))] = $arg_name))
             push!(kwargs_to_use, Expr(:kw, k, arg_name))
             mapped_args[arg_name] = v
         else
@@ -118,11 +118,11 @@ function generate_show_diff_expr(already_shown_name, failed_testdata_name)
             data = $(failed_testdata_name)[$(QuoteNode(_SHOW_DIFF))]
             key1, key2 = data.keys
             value1, value2 = data.values
-            if value1 isa AbstractString && value2 isa AbstractString 
-                if TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io)
-                    push!($(already_shown_name), key1, key2)
-                end
+
+            if TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
+                push!($(already_shown_name), key1, key2)
             end
+          
             push!($(already_shown_name), $(QuoteNode(_SHOW_DIFF)))
             true
         else 
@@ -179,18 +179,25 @@ macro Test(args...)
     end
 
     push!(show_values_expr.args, quote 
-        println(io, "Test `" * $(original_ex_str) *"` failed with values:")
+        println(io, "Test `" * $(original_ex_str) *"` failed:")
         already_shown = Set(Any[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))])
+        print_values_header = TestingUtilities.PrintHeader("Values:")
         $(generate_show_diff_expr(:already_shown, :failed_test_data))
-        for (k,v) in pairs(failed_test_data)
-            if k ∉ already_shown && !(k === $(QuoteNode(_DEFAULT_TEST_EXPR_KEY)))
-                TestingUtilities.show_value(k, v; io)
-                push!(already_shown, k)
-            end
-        end
-        for (k,v) in pairs(test_input_data)
-            if k ∉ already_shown
-                TestingUtilities.show_value(k,v; io)
+   
+        for D in (failed_test_data, test_input_data)
+            for (k,v) in pairs(D)
+                k ∈ already_shown && continue 
+                if k isa Tuple 
+                    ref_k = :($(k[1]) = $(k[2]))
+                else
+                    ref_k = k 
+                end
+                if !isnothing(ref_k)
+                    if !TestingUtilities.has_printed(print_values_header)
+                        print_values_header(io)
+                    end
+                    TestingUtilities.show_value(ref_k, v; io)
+                end
                 push!(already_shown, k)
             end
         end
