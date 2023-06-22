@@ -293,8 +293,12 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @Test io=io a == 2 
             message = String(take!(io))
             @test message == "Test `a == 2` failed:\nValues:\na = $a\n"
+            b = Ref(false)
+            @Test io=io b[]
+            message = String(take!(io))
+            @test message == "Test `b[]` failed:\nValues:\nb = $b\n"
         end
-        @test test_results_match(results, (Test.Fail, Test.Pass))
+        @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
         results = Test.@testset NoThrowTestSet "Comparison to string" begin 
             io = IOBuffer()

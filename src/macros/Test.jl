@@ -96,7 +96,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
         end
     end
    
-    if call_func in (:&&, :||, :comparison, :if)
+    if call_func in (:&&, :||, :comparison, :if, :ref)
         eval_test_expr = Expr(call_func)
     else
         eval_test_expr = Expr(:call, esc_f(call_func))
