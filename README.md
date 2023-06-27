@@ -7,7 +7,8 @@
 
 `TestingUtilities` provides macros for improving the visibility into your failing tests.
 
-# `@Test` 
+# Macros
+## `@Test` 
 An expression invoking `@Test` outputs the value of (automatically-determined) variables of interest when the underlying test errors or fails. E.g., 
 ```julia
     x = 1
@@ -41,7 +42,7 @@ Sample output:
 
 No values are printed when the test passes. 
 
-# `@test_cases` 
+## `@test_cases` 
 The `@test_cases` macro allows you to compactly evaluate test expressions on test cases with the same underlying data fields, but differing values. The values of the specific test cases that cause each test expression to fail will be printed, similar to `@Test`. 
 
 If run as a standalone macro invocation, the tests will terminate at the first instance of failure, e.g., 
@@ -99,6 +100,38 @@ Sample output:
     output = -1
     a = 0
     b = 0
+```
+
+## `@test_eventually`
+The `@test_eventually` is used to test that a given test expression eventually returns true (i.e., passes within a prescribed timeout). You can use it to test, for instance, that blocking expressions eventually return within a given time limit or will throw a `TestTimedOutException` in your test set instead.
+
+```julia 
+    @testset "Timing Out Test" begin
+        done = Ref(false)
+        f = (done)->(while !done[]; sleep(0.1) end; true)
+        
+        # Times out after 1s, checking every 10ms that a value has not returned
+        @test_eventually timeout=1s sleep=10ms f(done)
+        
+        # Test passes within the allotted timeout
+        g = @async (sleep(0.3); done[] = true)
+        @test_eventually timeout=1s sleep=10ms f(done)
+    end
+```
+
+Sample output:
+```
+    Test `f(done)` failed:
+    Reason: Test took longer than 1000 milliseconds to pass
+    Values:
+    done = Base.RefValue{Bool}(false)
+    Timing Out Test: Error During Test at REPL[133]:6
+    Test threw exception
+    Expression: f(done)
+    
+    Test Summary:   | Pass  Error  Total  Time
+    Timing Out Test |    1      1      2  1.5s
+    ERROR: Some tests did not pass: 1 passed, 0 failed, 1 errored, 0 broken.
 ```
 
 # Equality-Comparison Tests 
