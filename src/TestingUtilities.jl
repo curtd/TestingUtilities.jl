@@ -1,12 +1,18 @@
 module TestingUtilities
 
-    using MLStyle, OrderedCollections, Preferences, Test
+    using Dates, MLStyle, OrderedCollections, Preferences, Test
     
-    export @Test, @test_cases   
+    export @Test, @test_cases, @test_eventually 
 
     export define_vars_in_failed_tests
+
+    export TaskTimedOutException, TestTimedOutException
     
     include("util.jl")
+
+    include("test_results_printer.jl")
+
+    include("exceptions.jl")
     
     include("settings.jl")
 

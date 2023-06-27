@@ -86,7 +86,7 @@ function parse_args_kwargs(call_expr)
             call_func, expr_args
         @case Expr(:vect, expr_args...)
             :(Base.vect), expr_args
-        @case Expr(head, expr_args...)
+        @case Expr(head, expr_args...) && if head ∉ (:block, ) end
             head, expr_args
         @case expr 
             error("Unrecognized argument in call_expr (= $call_expr) -- $expr")

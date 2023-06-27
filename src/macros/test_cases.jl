@@ -215,22 +215,9 @@ macro test_cases(args...)
 
         push!(show_all_test_data_expr.args, quote 
             if !isempty(failed_test_data[$i])
-                println(io, "Test `" * $(string(evaluate_test_expr)) *"` failed:")
-                print_values_header = TestingUtilities.PrintHeader("Values:")
-                for (num,t) in enumerate(failed_test_data[$i])
-                    if !TestingUtilities.has_printed(print_values_header)
-                        print_values_header(io)
-                    end
-                    println(io, "------")
-                    already_shown = Set(Any[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))])
-                    $(generate_show_diff_expr(:already_shown, :t))
-                    for (k,v) in pairs(t)
-                        if k ∉ already_shown
-                            TestingUtilities.show_value(k,v; io)
-                            push!(already_shown, k)
-                        end
-                    end
-                end
+                results_printer = TestingUtilities.TestResultsPrinter(io, $(string(evaluate_test_expr)))
+
+                TestingUtilities.print_testcases_data!(results_printer, failed_test_data[$i])
             end
         end)
         
@@ -241,13 +228,11 @@ macro test_cases(args...)
         local TestingUtilities = $(@__MODULE__)
         local failed_test_data = [Any[] for i in 1:$(length(evaluate_test_exprs))]
         local local_evaluate_test_data = [TestingUtilities.OrderedDict{Any,Any}() for i in 1:$(length(evaluate_test_exprs))]
-        local has_shown_failed_data = Ref{Bool}(false)
         local has_set_failed_data = Ref{Bool}(false)
+
         local show_all_test_data = let failed_test_data=failed_test_data, has_set_failed_data=has_set_failed_data, io=$(io_expr)
             function()
-                if !has_shown_failed_data[]
-                    $show_all_test_data_expr
-                end
+                $show_all_test_data_expr
             end
         end
         local test_data = try 

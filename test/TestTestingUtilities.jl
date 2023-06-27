@@ -22,4 +22,6 @@ module TestTestingUtilities
     
     include("test_cases_macro.jl")
 
+    include("test_eventually_macro.jl")
+
 end

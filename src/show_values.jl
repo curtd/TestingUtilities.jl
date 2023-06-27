@@ -73,12 +73,12 @@ function common_prefix(a::AbstractString, b::AbstractString)
     return prefix, a_rest, b_rest
 end
 
-function show_diff(expected::AbstractString, result::AbstractString; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, print_values_header::Union{PrintHeader,Nothing}=nothing)
+function show_diff(expected::AbstractString, result::AbstractString; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, results_printer::Union{Nothing, TestResultsPrinter}=nothing)
     ctx = IOContext(io, :compact => compact)
-    if !isnothing(print_values_header) && !has_printed(print_values_header)
-        print_values_header(ctx)
-    end
     has_colour = get(io, :color, false)
+    if !isnothing(results_printer)
+        print_header!(results_printer, TestValues())
+    end
     prefix, expected_rest, result_rest = common_prefix(expected, result) 
 
     p = PrintAligned(string(expected_name), string(result_name); separator=" = ")
@@ -95,4 +95,23 @@ function show_diff(expected::AbstractString, result::AbstractString; expected_na
     return true
 end
 
-show_diff(expected, result; kwargs...) = false
+will_show_diff(expected::AbstractString, result::AbstractString) = true
+
+show_diff(expected, result; kwargs...) = nothing
+
+will_show_diff(expected, result) = false
+
+function maybe_show_diff!(already_shown, failed_testdata; io::IO)
+    if haskey(failed_testdata, _SHOW_DIFF)
+        data = failed_testdata[_SHOW_DIFF]
+        key1, key2 = data.keys
+        value1, value2 = data.values
+        if show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
+            push!(already_shown, key1, key2)
+        end
+        push!(already_shown, _SHOW_DIFF)
+        return true
+    else
+        return false
+    end
+end
