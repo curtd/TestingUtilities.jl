@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Settings · TestingUtilities.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://curtd.github.io/TestingUtilities.jl/settings/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">TestingUtilities.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Settings</a><ul class="internal"><li><a class="tocitem" href="#Comparison-Tests"><span>Comparison Tests</span></a></li></ul></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Settings</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Settings</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/curtd/TestingUtilities.jl/blob/main/docs/src/settings.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Settings"><a class="docs-heading-anchor" href="#Settings">Settings</a><a id="Settings-1"></a><a class="docs-heading-anchor-permalink" href="#Settings" title="Permalink"></a></h1><p><code>TestingUtilities</code> makes use of the <code>Preferences</code> package to store package-side settings for various test failure scenarios.</p><h2 id="Comparison-Tests"><a class="docs-heading-anchor" href="#Comparison-Tests">Comparison Tests</a><a id="Comparison-Tests-1"></a><a class="docs-heading-anchor-permalink" href="#Comparison-Tests" title="Permalink"></a></h2><h3 id="Strings"><a class="docs-heading-anchor" href="#Strings">Strings</a><a id="Strings-1"></a><a class="docs-heading-anchor-permalink" href="#Strings" title="Permalink"></a></h3><p>When performing an equality comparison test between two <code>String</code> values, say <code>x</code> and <code>y</code>, if the test fails and the provided <code>io</code> object supports printing colours, the matching shared prefix of <code>x</code> and <code>y</code> will be rendered in green while the differing components of <code>x</code> and <code>y</code> will be rendered in red.</p><pre><code class="language-julia hljs">a = &quot;abcd&quot;
+b = &quot;abef&quot;
+c = &quot;abeghik&quot;
+@testset NoThrowTestSet &quot;&quot; begin
+    @Test a == b
+    @Test isequal(c, &quot;abeg&quot;)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test `a == b` failed:
+Values:
+a = &quot;<span class="sgr32">ab</span><span class="sgr31">cd</span>&quot;
+b = &quot;<span class="sgr32">ab</span><span class="sgr31">ef</span>&quot;
+Test `isequal(c, &quot;abeg&quot;)` failed:
+Values:
+expected = &quot;<span class="sgr32">abeg</span>&quot;
+c        = &quot;<span class="sgr32">abeg</span><span class="sgr31">hik</span>&quot;</code></pre><p>If you&#39;re unable to distinguish between the default colours (or colours more generally), you can set the styles used to render the matching components and differing components of the strings by invoking <a href="../api/#TestingUtilities.set_show_diff_styles-Tuple{}"><code>TestingUtilities.set_show_diff_styles</code></a>. You can use any <code>key =&gt; value</code> pair corresponding to the keyword arguments of <a href="https://docs.julialang.org/en/v1/base/io-network/#Base.printstyled"><code>Base.printstyled</code></a>.</p><pre><code class="language-julia hljs">TestingUtilities.set_show_diff_styles(; matching=:bold =&gt; true, differing=:underline =&gt; true)
+@testset NoThrowTestSet &quot;&quot; begin
+    @Test a == b
+    @Test isequal(c, &quot;abeg&quot;)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test `a == b` failed:
+Values:
+a = &quot;<span class="sgr1">ab</span><span class="sgr4">cd</span>&quot;
+b = &quot;<span class="sgr1">ab</span><span class="sgr4">ef</span>&quot;
+Test `isequal(c, &quot;abeg&quot;)` failed:
+Values:
+expected = &quot;<span class="sgr1">abeg</span>&quot;
+c        = &quot;<span class="sgr1">abeg</span><span class="sgr4">hik</span>&quot;</code></pre><h3 id="DataFrames"><a class="docs-heading-anchor" href="#DataFrames">DataFrames</a><a id="DataFrames-1"></a><a class="docs-heading-anchor-permalink" href="#DataFrames" title="Permalink"></a></h3><p>Similarly, when performing an equality test between two <code>DataFrame</code>s, <code>TestUtilities</code> will display a nicely-formatted message detailing the reason for the difference between the two values, e.g., </p><pre><code class="language-julia hljs">using DataFrames
+
+TestingUtilities.set_show_diff_styles(; matching=:color =&gt; :green, differing=:color =&gt; :red) # hide
+
+x = DataFrame(:a =&gt; [1, 2, 4], :b =&gt; [false, true, true])
+x_diffcols = DataFrame(:a =&gt; [1, 2, 4], :z =&gt; [false, false, true])
+x_diffnrows = DataFrame(:a =&gt; [1, 2], :b =&gt; [false, true])
+x_diffvalues = DataFrame(:a =&gt; [1, 2, 3], :b =&gt; [false, false, true])
+@testset NoThrowTestSet &quot;&quot; begin
+    @Test x == x_diffcols
+    @Test x == x_diffnrows
+    @Test x == x_diffvalues
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test `x == x_diffcols` failed:
+Reason: `propertynames(x) != propertynames(x_diffcols)`
+`propertynames(x)`          = {<span class="sgr32">:a</span>, <span class="sgr31">:b</span>}
+`propertynames(x_diffcols)` = {<span class="sgr32">:a</span>, <span class="sgr31">:z</span>}
+Test `x == x_diffnrows` failed:
+Reason: `nrow(x) != nrow(x_diffnrows)`
+`nrow(x)`           = 3
+`nrow(x_diffnrows)` = 2
+Test `x == x_diffvalues` failed:
+Reason: Mismatched values
+┌───────────────────┬──────────────┬───────┬───────┐
+│<span class="sgr1">           row_num │           df │     a │     b │
+│<span class="sgr90"> U{Nothing, Int64} │       Symbol │ Int64 │  Bool │
+├───────────────────┼──────────────┼───────┼───────┤
+│                 2 │            x │</span><span class="sgr32">     2 │</span><span class="sgr31">  true │
+│                   │ x_diffvalues │</span><span class="sgr32">     2 │</span><span class="sgr31"> false │
+│                 3 │            x │     4 │</span><span class="sgr32">  true │
+│                   │ x_diffvalues │</span><span class="sgr31">     3 │</span><span class="sgr32">  true │
+└───────────────────┴──────────────┴───────┴───────┘</span></span></code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Tuesday 27 June 2023 01:00">Tuesday 27 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
