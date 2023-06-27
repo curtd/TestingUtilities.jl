@@ -2,7 +2,7 @@
 
 ```@autodocs 
 Modules = [TestingUtilities]
-Order   = [:macro, :function] 
+Order   = [:macro, :type, :function] 
 Private = false
 ```
 

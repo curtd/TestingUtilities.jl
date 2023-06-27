@@ -114,4 +114,6 @@ module TestingUtilitiesDataFramesExt
         end
         return true
     end
+
+    TestingUtilities.will_show_diff(expected::AbstractDataFrame, result::AbstractDataFrame) = true
 end

@@ -162,3 +162,39 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
         end
     end
 end
+
+@testset "Misc utilities" begin 
+    @testset "TaskFinishedTimer" begin 
+        done = Ref(false)
+        cb = ()->(while !done[] sleep(0.1) end; 1)
+        max_time = Millisecond(100)
+        sleep_time = Millisecond(1)
+        timer = TestingUtilities.TaskFinishedTimer(cb; max_time, sleep_time)
+        f = @async fetch(timer)
+        sleep(0.5)
+        @test_throws TaskFailedException fetch(f)
+        if VERSION ≥ v"1.7"
+            @test current_exceptions(f)[1].exception isa TaskTimedOutException
+        else 
+            @test Base.catch_stack(f)[1][1] isa TaskTimedOutException
+        end
+        max_time = Millisecond(1000)
+        sleep_time = Millisecond(1)
+        timer = TestingUtilities.TaskFinishedTimer(cb; max_time, sleep_time)
+        f = @async fetch(timer)
+        sleep(0.05)
+        done[] = true
+        sleep(0.25)
+        @test istaskdone(f) && !istaskfailed(f)
+        @test fetch(f) == 1
+
+        # Task will fail before timer fails
+        done = Ref(false)
+        cb = ()->(local a = 0; while !done[] sleep(0.1); a += 1; a ≥ 3 && error("Failed"); end)
+        timer = TestingUtilities.TaskFinishedTimer(cb; max_time, sleep_time)
+        f = @async fetch(timer)
+        @test !istaskdone(f) && !istaskfailed(f)
+        sleep(0.5)
+        @test_throws TaskFailedException fetch(f)
+    end
+end
