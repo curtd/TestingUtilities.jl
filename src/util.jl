@@ -89,7 +89,9 @@ function TaskFinishedTimer(max_time::Millisecond, sleep_time::Millisecond,  retu
     return t
 end
 
-TaskFinishedTimer(::Type{T}, cb::Function, args...; max_time::Millisecond, sleep_time::Millisecond, timer_name::String="") where {T} = TaskFinishedTimer(max_time, sleep_time, T, cb, args...; timer_name)
+TaskFinishedTimer(max_time::Dates.Period, sleep_time::Dates.Period, args...; kwargs...) = TaskFinishedTimer(Millisecond(max_time), Millisecond(sleep_time), args...; kwargs...)
+
+TaskFinishedTimer(::Type{T}, cb::Function, args...; max_time::Dates.Period, sleep_time::Dates.Period, timer_name::String="") where {T} = TaskFinishedTimer(max_time, sleep_time, T, cb, args...; timer_name)
 
 TaskFinishedTimer(cb::Function, args...; kwargs...) = TaskFinishedTimer(Any, cb, args...; kwargs...)
 

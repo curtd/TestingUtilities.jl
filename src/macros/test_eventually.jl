@@ -28,6 +28,7 @@ function parse_shorthand_duration(ex::Expr)
             return nothing
     end
 end
+parse_shorthand_duration(ex::Int) = :(Dates.Millisecond($ex))
 parse_shorthand_duration(ex) = nothing
 
 """
@@ -43,9 +44,7 @@ If `key = value` is given for `key` = `sleep` or `key` = `timeout`, then
 - if `value` is an expression of the form `num*unit` for `num::Int` and `unit` is one of the shorthand durations (`ms`, `s`, `m`, `h`, `d`, `w`, `month`, `y`), the resulting duration will be converted to its equivalent unit from the `Dates` module
     e.g., `value = 1m` => `Dates.Minute(1)`
           `value = 2s` => `Dates.Second(2)`
-- otherwise, `value` must be a valid duration expression that will be passed to the `Dates.Millisecond` constructor
-    e.g., `value = Second(5)` => `Millisecond(Second(5))`
-
+- otherwise, `value` must be a valid `Dates.Period` expression
 """
 macro test_eventually(args...)
     kwargs = parse_kwarg_expr(args[1:end-1]...)
@@ -82,8 +81,9 @@ macro test_eventually(args...)
                 TestingUtilities.Test.Threw(_e, Base.current_exceptions(), $(source))
             end
         end
-        local max_time = Millisecond($timeout_expr)
-        local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=$(sleep_period_expr), timer_name=$(string(original_ex)))
+        local max_time = $timeout_expr
+        local sleep_time = $sleep_period_expr
+        local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(string(original_ex)))
 
         local test_result = fetch(timer; throw_error=false)
         
