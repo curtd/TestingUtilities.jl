@@ -114,28 +114,68 @@ end
 
 reset_show_diff_styles() = set_show_diff_styles(; matching=_show_diff_matching_style_default(), differing=_show_diff_differing_style_default())
 
-const show_diff_df_max_nrows_ncols = Ref((10, 10))
+_show_df_max_nrows_default() = 5 
+_show_df_max_ncols_default() = 10 
 
-function load_show_diff_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
+const show_df_max_nrows_ncols = Ref((_show_df_max_nrows_default(), _show_df_max_ncols_default()))
+
+function load_show_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
     if max_num_rows ≤ 0
-        max_num_rows = max(@load_preference("show_diff_df_max_num_rows", 10)::Int, 1)
+        max_num_rows = max(@load_preference("show_df.max_num_rows", _show_df_max_nrows_default())::Int, 1)
     end
     if max_num_cols ≤ 0
-        max_num_cols = max(@load_preference("show_diff_df_max_num_cols", 10)::Int, 1)
+        max_num_cols = max(@load_preference("show_df.max_num_cols", _show_df_max_ncols_default())::Int, 1)
     end
-    show_diff_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
+    show_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
     return nothing
 end
 
-function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
-    @set_preferences!("show_diff_df_max_num_rows" => max_num_rows)
-    @set_preferences!("show_diff_df_max_num_cols" => max_num_cols)
+"""
+    set_show_df_opts(; [max_num_rows::Int], [max_num_cols::Int])
 
-    load_show_diff_df_max_rows_cols()
+Sets the local maximum # of rows + columns to show when printing `DataFrame` values. 
+
+If not provided or if negative values are provided, will be set to `max_num_of_rows = 5` and `max_num_cols = 10`, respectively
+"""
+function set_show_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
+    @set_preferences!("show_df.max_num_rows" => max_num_rows)
+    @set_preferences!("show_df.max_num_cols" => max_num_cols)
+
+    load_show_df_max_rows_cols()
     return nothing
 end
+
+reset_show_df_opts() = set_show_df_opts(; max_num_rows=_show_df_max_nrows_default(), max_num_cols=_show_df_max_ncols_default())
 
 _show_diff_df_max_nrows_default() = 10 
 _show_diff_df_max_ncols_default() = 10 
 
-reset_show_diff_df_opts() = set_show_diff_df_opts(; max_num_rows=_show_diff_df_max_nrows_default(), max_num_cols=_show_diff_df_max_ncols_default())
+const show_diff_df_max_nrows_ncols = Ref((_show_diff_df_max_nrows_default(), _show_diff_df_max_ncols_default()))
+
+function load_show_diff_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
+    if max_num_rows ≤ 0
+        max_num_rows = max(@load_preference("show_diff_df.max_num_rows", 10)::Int, 1)
+    end
+    if max_num_cols ≤ 0
+        max_num_cols = max(@load_preference("show_diff_df.max_num_cols", 10)::Int, 1)
+    end
+    show_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
+    return nothing
+end
+
+"""
+    set_show_diff_df_opts(; [max_num_rows::Int], [max_num_cols::Int])
+
+Sets the local maximum # of rows + columns to show when printing differences of `DataFrame` values. 
+
+If not provided or if negative values are provided, will be set to `max_num_of_rows = 10` and `max_num_cols = 10`, respectively
+"""
+function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
+    @set_preferences!("show_diff_df.max_num_rows" => max_num_rows)
+    @set_preferences!("show_diff_df.max_num_cols" => max_num_cols)
+
+    load_show_df_max_rows_cols()
+    return nothing
+end
+
+reset_show_diff_df_opts() = set_show_df_opts(; max_num_rows=_show_diff_df_max_nrows_default(), max_num_cols=_show_diff_df_max_ncols_default())

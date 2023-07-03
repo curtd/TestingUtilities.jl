@@ -1,21 +1,29 @@
+_show_value(ctx, value) = (println(ctx, repr(value)); flush(ctx))
+
+function _show_name(ctx, name)
+    if name isa Expr
+        io = IOBuffer()
+        print(io, "`")
+        Base.show_unquoted(io, name)
+        print(io, "`")
+        _name = String(take!(io))
+    else
+        _name = string(name)
+    end
+    print(ctx, _name)
+    return textwidth(_name)
+end
+
 function show_value(value; io=stderr, compact::Bool=true)
     ctx = IOContext(io, :compact => compact)
-    println(ctx, repr(value))
-    flush(ctx)
+    _show_value(ctx, value)
 end
 
 function show_value(name, value; io=stderr, compact::Bool=true)
     ctx = IOContext(io, :compact => compact)
-    if name isa Expr
-        print(ctx, "`")
-        Base.show_unquoted(ctx, name)
-        print(ctx, "`")
-    else
-        Base.show_unquoted(ctx, name)
-    end
+    _show_name(ctx, name)
     print(ctx, " = ")
-    println(ctx, repr(value))
-    flush(ctx)
+    _show_value(ctx, value)
 end
 
 struct PrintAligned 

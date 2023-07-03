@@ -41,6 +41,7 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
         @test TestingUtilities.fetch_kwarg_expr(kwargs; key=:f, default_value=nothing, expected_type=[Int,QuoteNode, Nothing]) |> isnothing
     end
     @testset "show_value" begin 
+        @testset "Generic value" begin 
         io = IOBuffer()
         k = :var
         v = 1
@@ -52,6 +53,25 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
         k = Expr(:call, :f, :x)
         TestingUtilities.show_value(k, v; io)
         @test String(take!(io)) == "`f(x)` = 1\n"
+        end
+        if run_df_tests
+            @testset "DataFrame" begin 
+                io = IOBuffer()
+                df = DataFrame( (Symbol("a$i") => (i:i+10) for i in 1:10)... )
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(1,1))
+                s = String(take!(io))
+                @test isequal(s, "┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     ⋮ │   │\n└───────┴───┘\n")
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(3,1))
+                s = String(take!(io))
+                @test isequal(s, "┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     2 │   │\n│     3 │   │\n│     ⋮ │   │\n└───────┴───┘\n")
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(1, 3))
+                s = String(take!(io))
+                @test isequal(s, "┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n")
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(4, 3))
+                s = String(take!(io))
+                @test isequal(s, "┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     2 │     3 │     4 │   │\n│     3 │     4 │     5 │   │\n│     4 │     5 │     6 │   │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n")
+            end
+        end
     end
     @testset "common_prefix" begin 
         test_data = [
@@ -106,58 +126,60 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
         end
         if run_df_tests
             @testset "DataFrames" begin 
-                # Differing propertynames 
-                io = IOBuffer()
-                reason_header = "Reason: `propertynames(expected) != propertynames(result)`"
-                test_data = [
-                    (; expected = DataFrame(:a => [1]), result = DataFrame(:b => [1]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:a}\n`propertynames(result)`   = {:b}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[31m:a\e[39m}\n`propertynames(result)`   = {\e[31m:b\e[39m}\n"), 
-                    (; expected = DataFrame(:a => [1], :c => [1]), result = DataFrame(:b => [1], :c => [2]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:c, :a}\n`propertynames(result)`   = {:c, :b}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[32m:c\e[39m, \e[31m:a\e[39m}\n`propertynames(result)`   = {\e[32m:c\e[39m, \e[31m:b\e[39m}\n"), 
-                    (; expected = DataFrame(:a => [1], :c => [1]), result = DataFrame(:b => [1], :c => [2], :d => [1]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:c, :a}\n`propertynames(result)`   = {:c, :b, :d}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[32m:c\e[39m, \e[31m:a\e[39m}\n`propertynames(result)`   = {\e[32m:c\e[39m, \e[31m:b, :d\e[39m}\n")
-                ]
-                for data in test_data    
-                    expected, result, output_nocolour = data.expected, data.result, data.output_nocolour
-                    @test TestingUtilities.show_diff(expected, result; io)
-                    @test String(take!(io)) == output_nocolour
-                end
-            
-                TestingUtilities.set_show_diff_styles(; matching=:color => :green, differing=:color => :red)
-                buf = IOBuffer()
-                io = IOContext(buf, :color => true)
-
-                for data in test_data    
-                    expected, result, output_colour = data.expected, data.result, data.output_colour
-                    @test TestingUtilities.show_diff(expected, result; io)
-                    @test String(take!(buf)) == output_colour
-                end
+                @testset "show_diff" begin 
+                    max_num_rows_cols=(100,100)
+                    # Differing propertynames 
+                    io = IOBuffer()
+                    reason_header = "Reason: `propertynames(expected) != propertynames(result)`"
+                    test_data = [
+                        (; expected = DataFrame(:a => [1]), result = DataFrame(:b => [1]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:a}\n`propertynames(result)`   = {:b}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[31m:a\e[39m}\n`propertynames(result)`   = {\e[31m:b\e[39m}\n"), 
+                        (; expected = DataFrame(:a => [1], :c => [1]), result = DataFrame(:b => [1], :c => [2]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:c, :a}\n`propertynames(result)`   = {:c, :b}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[32m:c\e[39m, \e[31m:a\e[39m}\n`propertynames(result)`   = {\e[32m:c\e[39m, \e[31m:b\e[39m}\n"), 
+                        (; expected = DataFrame(:a => [1], :c => [1]), result = DataFrame(:b => [1], :c => [2], :d => [1]), output_nocolour = "$reason_header\n`propertynames(expected)` = {:c, :a}\n`propertynames(result)`   = {:c, :b, :d}\n", output_colour = "$reason_header\n`propertynames(expected)` = {\e[32m:c\e[39m, \e[31m:a\e[39m}\n`propertynames(result)`   = {\e[32m:c\e[39m, \e[31m:b, :d\e[39m}\n")
+                    ]
+                    for data in test_data    
+                        expected, result, output_nocolour = data.expected, data.result, data.output_nocolour
+                        @test TestingUtilities.show_diff(expected, result; io, max_num_rows_cols)
+                        @test String(take!(io)) == output_nocolour
+                    end
                 
-                # Same propertynames, differing rows 
-                io_noc = IOBuffer()
-                buf = IOBuffer()
-                io_c = IOContext(buf, :color => true)
+                    TestingUtilities.set_show_diff_styles(; matching=:color => :green, differing=:color => :red)
+                    buf = IOBuffer()
+                    io = IOContext(buf, :color => true)
 
-                expected = DataFrame(:a => [1,2])
-                result = DataFrame(:a => [1])
-                reason_header = "Reason: `nrow(expected) != nrow(result)`"
-                output_nocolour = "$reason_header\n`nrow(expected)` = 2\n`nrow(result)`   = 1\n"
-                output_colour = "$reason_header\n`nrow(expected)` = 2\n`nrow(result)`   = 1\n"
-                @test TestingUtilities.show_diff(expected, result; io=io_noc)
-                @test String(take!(io_noc)) == output_nocolour
-                @test TestingUtilities.show_diff(expected, result; io=io_c)
-                @test String(take!(buf)) == output_colour
+                    for data in test_data    
+                        expected, result, output_colour = data.expected, data.result, data.output_colour
+                        @test TestingUtilities.show_diff(expected, result; io, max_num_rows_cols)
+                        @test String(take!(buf)) == output_colour
+                    end
+                    
+                    # Same propertynames, differing rows 
+                    io_noc = IOBuffer()
+                    buf = IOBuffer()
+                    io_c = IOContext(buf, :color => true)
 
-                expected = DataFrame(:a => [1, 2], :c => [DateTime(2023, 1, 1), DateTime(2023, 1, 2)])
-                result = DataFrame(:a => [1, 2], :c => [DateTime(2023, 1, 1), DateTime(2023, 1, 1)])
-                reason_header = "Reason: Mismatched values"
-                datetime_type_str = string(DateTime)
+                    expected = DataFrame(:a => [1,2])
+                    result = DataFrame(:a => [1])
+                    reason_header = "Reason: `nrow(expected) != nrow(result)`"
+                    output_nocolour = "$reason_header\n`nrow(expected)` = 2\n`nrow(result)`   = 1\n"
+                    output_colour = "$reason_header\n`nrow(expected)` = 2\n`nrow(result)`   = 1\n"
+                    @test TestingUtilities.show_diff(expected, result; io=io_noc, max_num_rows_cols)
+                    @test String(take!(io_noc)) == output_nocolour
+                    @test TestingUtilities.show_diff(expected, result; io=io_c, max_num_rows_cols)
+                    @test String(take!(buf)) == output_colour
 
-                output_nocolour = "$reason_header\n┌───────────────────┬──────────┬───────┬─────────────────────┐\n│           row_num │       df │     a │                   c │\n│ U{Nothing, Int64} │   String │ Int64 │            DateTime │\n├───────────────────┼──────────┼───────┼─────────────────────┤\n│                 2 │ expected │     2 │ 2023-01-02T00:00:00 │\n│                   │   result │     2 │ 2023-01-01T00:00:00 │\n└───────────────────┴──────────┴───────┴─────────────────────┘\n"
-                output_colour = "$reason_header\n┌───────────────────┬──────────┬───────┬─────────────────────┐\n│\e[1m           row_num \e[0m│\e[1m       df \e[0m│\e[1m     a \e[0m│\e[1m                   c \e[0m│\n│\e[90m U{Nothing, Int64} \e[0m│\e[90m   String \e[0m│\e[90m Int64 \e[0m│\e[90m            DateTime \e[0m│\n├───────────────────┼──────────┼───────┼─────────────────────┤\n│                 2 │ expected │\e[32m     2 \e[0m│\e[31m 2023-01-02T00:00:00 \e[0m│\n│                   │   result │\e[32m     2 \e[0m│\e[31m 2023-01-01T00:00:00 \e[0m│\n└───────────────────┴──────────┴───────┴─────────────────────┘\n"
+                    expected = DataFrame(:a => [1, 2], :c => [DateTime(2023, 1, 1), DateTime(2023, 1, 2)])
+                    result = DataFrame(:a => [1, 2], :c => [DateTime(2023, 1, 1), DateTime(2023, 1, 1)])
+                    reason_header = "Reason: Mismatched values"
+                    datetime_type_str = string(DateTime)
 
-                @test TestingUtilities.show_diff(expected, result; io=io_noc)
-                @Test String(take!(io_noc)) == output_nocolour
-                @test TestingUtilities.show_diff(expected, result; io=io_c)
-                @Test String(take!(buf)) == output_colour
+                    output_nocolour = "$reason_header\n┌───────────────────┬──────────┬───────┬─────────────────────┐\n│           row_num │       df │     a │                   c │\n│ U{Nothing, Int64} │   String │ Int64 │            DateTime │\n├───────────────────┼──────────┼───────┼─────────────────────┤\n│                 2 │ expected │     2 │ 2023-01-02T00:00:00 │\n│                   │   result │     2 │ 2023-01-01T00:00:00 │\n└───────────────────┴──────────┴───────┴─────────────────────┘\n"
+                    output_colour = "$reason_header\n┌───────────────────┬──────────┬───────┬─────────────────────┐\n│\e[1m           row_num \e[0m│\e[1m       df \e[0m│\e[1m     a \e[0m│\e[1m                   c \e[0m│\n│\e[90m U{Nothing, Int64} \e[0m│\e[90m   String \e[0m│\e[90m Int64 \e[0m│\e[90m            DateTime \e[0m│\n├───────────────────┼──────────┼───────┼─────────────────────┤\n│                 2 │ expected │\e[32m     2 \e[0m│\e[31m 2023-01-02T00:00:00 \e[0m│\n│                   │   result │\e[32m     2 \e[0m│\e[31m 2023-01-01T00:00:00 \e[0m│\n└───────────────────┴──────────┴───────┴─────────────────────┘\n"
 
+                    @test TestingUtilities.show_diff(expected, result; io=io_noc, max_num_rows_cols)
+                    @Test String(take!(io_noc)) == output_nocolour
+                    @test TestingUtilities.show_diff(expected, result; io=io_c, max_num_rows_cols)
+                    @Test String(take!(buf)) == output_colour
+                end
             end
         end
     end
