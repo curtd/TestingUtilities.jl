@@ -320,11 +320,14 @@ append_char(x, c; n::Int) = x * repeat(c, n)
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
         if run_df_tests
+            TestingUtilities.set_show_df_opts(; max_num_rows=3, max_num_cols=3)
+            TestingUtilities.set_show_diff_df_opts(; max_num_rows=10, max_num_cols=10)
             results = Test.@testset NoThrowTestSet "Comparison to DataFrame" begin 
                 io = IOBuffer()
                 a = DataFrame(:b => [1,2,3], :c => [1.0, 2.0, 3.0])
                 b = DataFrame(:d => [1,2,3], :c => [1.0, 2.0, 3.0])
                 c = DataFrame(:b => [1,-2,3], :c => [-1.0, 2.0, 3.0])
+                d = DataFrame( (Symbol("a$i") => (i:i+10) for i in 1:10)... )
                 a2 = a[1:2,:]
                 
                 @Test io=io a == b 
@@ -338,8 +341,12 @@ append_char(x, c; n::Int) = x * repeat(c, n)
                 @Test io=io a == c 
                 message = String(take!(io))
                 @test message == "Test `a == c` failed:\nReason: Mismatched values\n┌───────────────────┬────────┬───────┬─────────┐\n│           row_num │     df │     b │       c │\n│ U{Nothing, Int64} │ Symbol │ Int64 │ Float64 │\n├───────────────────┼────────┼───────┼─────────┤\n│                 1 │      a │     1 │     1.0 │\n│                   │      c │     1 │    -1.0 │\n│                 2 │      a │     2 │     2.0 │\n│                   │      c │    -2 │     2.0 │\n└───────────────────┴────────┴───────┴─────────┘\n"
+
+                @Test io=io nrow(d) == 1
+                message = String(take!(io))
+                @test message == "Test `nrow(d) == 1` failed:\nValues:\n`nrow(d)` = 11\nd = ┌───────┬───────┬───────┬───┐\n    │    a1 │    a2 │    a3 │ … │\n    │ Int64 │ Int64 │ Int64 │   │\n    ├───────┼───────┼───────┼───┤\n    │     1 │     2 │     3 │ ⋯ │\n    │     2 │     3 │     4 │   │\n    │     3 │     4 │     5 │   │\n    │     ⋮ │     ⋮ │     ⋮ │   │\n    └───────┴───────┴───────┴───┘\n    "
             end
-            @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+            @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
         end
 
         results = Test.@testset NoThrowTestSet "Invalid Test" begin 

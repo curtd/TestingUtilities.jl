@@ -28,7 +28,66 @@ module TestingUtilitiesDataFramesExt
         return Crayon(; kwargs...)
     end
 
-    function TestingUtilities.show_diff(expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, kwargs...)
+    struct TruncatedValue end 
+    PrettyTables.compact_type_str(::Type{TruncatedValue}) = ""
+
+    function show_truncated_df(io::IO, df::AbstractDataFrame; max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[], kwargs...)
+        max_num_of_rows, max_num_of_columns = max.(1, max_num_rows_cols)
+        num_rows = nrow(df)
+        num_cols = ncol(df)
+        truncate_to_rows = min(num_rows, max_num_of_rows)
+        truncate_to_cols = min(num_cols, max_num_of_columns)
+
+        row_indices = 1:(truncate_to_rows + (num_rows > max_num_of_rows ? 1 : 0))
+        col_indices = 1:(truncate_to_cols + (num_cols > max_num_of_columns ? 1 : 0))
+
+        df_to_show = df[row_indices, col_indices]
+        if num_cols > max_num_of_columns
+            rename!(df_to_show, (truncate_to_cols+1) => Symbol("…"))
+            df_to_show[!, Symbol("…")] = [TruncatedValue() for _ in 1:truncate_to_rows+1]
+        end
+
+        if haskey(kwargs, :formatters)
+            _formatter = kwargs[:formatters]
+        else
+            _formatter = (v,i,j) -> string(v) 
+        end
+        if haskey(kwargs, :highlighters)
+            _highlighters = kwargs[:highlighters]
+            highlighter_f = function(data, i, j)
+                ((i == truncate_to_rows + 1) || (j == truncate_to_cols + 1)) && return false 
+                return _highlighters.f(data, i, j)
+            end
+            highlighter_fd = _highlighters.fd 
+            highlighter_crayon = _highlighters.crayon
+            highlighters = Highlighter(highlighter_f, highlighter_fd, highlighter_crayon)
+        else
+            highlighters = Highlighter((data,i,j) -> false, crayon"white")
+        end
+        formatters = function(v,i,j)
+            if i == truncate_to_rows + 1
+                if j ≤ truncate_to_cols
+                    return "⋮"
+                else
+                    return ""
+                end
+            elseif i == 1
+                if j == truncate_to_cols + 1
+                    return "⋯"
+                else
+                    return _formatter(v,i,j)
+                end
+            elseif j == truncate_to_cols + 1
+                return ""
+            else
+                return _formatter(v,i,j)
+            end
+        end
+       
+        return pretty_table(io, df_to_show; kwargs..., highlighters, formatters)
+    end
+
+    function TestingUtilities.show_diff(expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], kwargs...)
         ctx = IOContext(io, :compact => compact)
         has_colour = get(io, :color, false)
         expected_names = propertynames(expected)
@@ -40,17 +99,14 @@ module TestingUtilitiesDataFramesExt
             expected_nrows = nrow(expected)
             result_nrows = nrow(result)
             if expected_nrows == result_nrows 
-                max_rows_to_show, max_cols_to_show = TestingUtilities.show_diff_df_max_nrows_ncols[]
-                
-                max_rows_to_show = max(1, max_rows_to_show)
-                max_cols_to_show = max(1, max_cols_to_show)
+                max_num_of_rows, max_num_of_columns = max.(1, max_num_rows_cols)
 
                 differing_rows = Int[]
                 for (row_num,(row_expected, row_result)) in enumerate(zip(eachrow(expected), eachrow(result)))
                     if !isequal(row_expected, row_result)
                         push!(differing_rows, row_num)
                     end
-                    length(differing_rows) == max_rows_to_show && break 
+                    length(differing_rows) == max_num_of_rows && break 
                 end
                 n_differing_rows = length(differing_rows)
                 difference_df = DataFrame()
@@ -78,7 +134,7 @@ module TestingUtilitiesDataFramesExt
                 highlighters = Highlighter((data,i,j) -> j > 2, highlight_diff)
                 formatters = (v, i, j) -> j == 1 && isnothing(v) ? "" : v
                 println(ctx, "Reason: Mismatched values")
-                pretty_table(ctx, difference_df; highlighters, formatters)
+                show_truncated_df(ctx, difference_df; highlighters, formatters, max_num_rows_cols=(max_num_of_rows, max_num_of_columns))
             else
                 println(ctx, "Reason: `nrow($expected_name) != nrow($result_name)`")
                 p = TestingUtilities.PrintAligned("`nrow($expected_name)`", "`nrow($result_name)`"; separator=" = ")
@@ -116,4 +172,31 @@ module TestingUtilitiesDataFramesExt
     end
 
     TestingUtilities.will_show_diff(expected::AbstractDataFrame, result::AbstractDataFrame) = true
+
+    function TestingUtilities.show_value(value::AbstractDataFrame; io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[])
+        ctx = IOContext(io, :compact => compact)
+        show_truncated_df(ctx, value; max_num_rows_cols)
+    end
+
+    function TestingUtilities.show_value(name, value::AbstractDataFrame; io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[])
+        ctx = IOContext(io, :compact => compact)
+        _displaysz = displaysize(io) 
+        name_width = TestingUtilities._show_name(ctx, name)
+        print(ctx, " = ")
+        name_width += 3 
+        
+        io_indented = IOBuffer()
+        ioc_indented = IOContext(io_indented, :displaysize => (_displaysz[1], max(1, _displaysz[2] - name_width)), :compact => compact)
+        show_truncated_df(ioc_indented, value; max_num_rows_cols)
+        indented = String(take!(io_indented))
+        indent = ' '^name_width
+        for (i,line) in enumerate(split(indented, "\n"))
+            if i > 1 
+                println(ctx)
+                print(ctx, indent, line)
+            else 
+                print(ctx, line)
+            end
+        end
+    end
 end
