@@ -1,5 +1,3 @@
-_show_value(ctx, value) = (println(ctx, repr(value)); flush(ctx))
-
 function _show_name(ctx, name)
     if name isa Expr
         io = IOBuffer()
@@ -14,17 +12,65 @@ function _show_name(ctx, name)
     return textwidth(_name)
 end
 
-function show_value(value; io=stderr, compact::Bool=true)
-    ctx = IOContext(io, :compact => compact)
-    _show_value(ctx, value)
+function show_value(ctx::IOContext, value::Ref; kwargs...)
+    println(ctx, "Ref(")
+    result = show_value(ctx, value[]; kwargs...)
+    println(ctx, ")")
+    return result
 end
 
-function show_value(name, value; io=stderr, compact::Bool=true)
-    ctx = IOContext(io, :compact => compact)
-    _show_name(ctx, name)
-    print(ctx, " = ")
-    _show_value(ctx, value)
+function show_value(ctx::IOContext, value; kwargs...)
+    println(ctx, repr(value))
+    flush(ctx)
+    return nothing
 end
+
+show_value(io::IO, value; compact::Bool=true, kwargs...) = show_value(IOContext(io, :compact => compact), value; kwargs...)
+show_value(value; io=stderr, kwargs...) = show_value(io, value; kwargs...)
+
+function show_indented(show_value_func, ctx::IOContext, _displaysz::Tuple{Int,Int}, value; indent::Int, kwargs...)
+    io_indented = IOBuffer()
+    ioc_indented = IOContext(io_indented, 
+        :displaysize => (_displaysz[1], max(1, _displaysz[2] - indent)), 
+        :compact => get(ctx, :compact, false)::Bool
+    )
+    show_value_func(ioc_indented, value; kwargs...)
+    indented = String(take!(io_indented))
+    indent_str = ' '^indent
+    indented_s = split(indented, "\n")
+    for (i,line) in enumerate(indented_s)
+        if i > 1 
+            println(ctx)
+            if i < length(indented_s) || !isempty(line)
+                print(ctx, indent_str, line)
+            end
+        else 
+            print(ctx, line)
+        end
+    end
+    return length(indented_s) > 1
+end
+
+function show_name_value(show_value_func, ctx::IOContext, name, value; kwargs...)
+    name_width = _show_name(ctx, name)
+    print(ctx, " = ")
+    name_width += 3 
+    return show_indented(show_value_func, ctx, displaysize(ctx), value; indent=name_width, kwargs...)
+end
+
+function show_name_value(show_value_func, ctx::IOContext, name, value::Ref; kwargs...)
+    name_width = _show_name(ctx, name)
+    print(ctx, "[] = ")
+    name_width += 5
+    return show_indented(show_value_func, ctx, displaysize(ctx), value[]; indent=name_width, kwargs...)
+end
+
+
+show_name_value(io::IOContext, name, value; kwargs...) = show_name_value(show_value, io, name, value; kwargs...)
+
+show_name_value(io::IO, name, value; compact::Bool=true, kwargs...) = show_name_value(IOContext(io, :compact => compact), name, value; kwargs...)
+
+show_value(name, value; io=stderr, kwargs...) = show_name_value(io, name, value; kwargs...)
 
 struct PrintAligned 
     header_strs::Vector{String}

@@ -296,7 +296,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             b = Ref(false)
             @Test io=io b[]
             message = String(take!(io))
-            @test message == "Test `b[]` failed:\nValues:\nb = $b\n"
+            @test message == "Test `b[]` failed:\nValues:\nb[] = $(b[])\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
@@ -328,6 +328,7 @@ append_char(x, c; n::Int) = x * repeat(c, n)
                 b = DataFrame(:d => [1,2,3], :c => [1.0, 2.0, 3.0])
                 c = DataFrame(:b => [1,-2,3], :c => [-1.0, 2.0, 3.0])
                 d = DataFrame( (Symbol("a$i") => (i:i+10) for i in 1:10)... )
+                d_ref = Ref(d)
                 a2 = a[1:2,:]
                 
                 @Test io=io a == b 
@@ -344,7 +345,12 @@ append_char(x, c; n::Int) = x * repeat(c, n)
 
                 @Test io=io nrow(d) == 1
                 message = String(take!(io))
-                @test message == "Test `nrow(d) == 1` failed:\nValues:\n`nrow(d)` = 11\nd = ┌───────┬───────┬───────┬───┐\n    │    a1 │    a2 │    a3 │ … │\n    │ Int64 │ Int64 │ Int64 │   │\n    ├───────┼───────┼───────┼───┤\n    │     1 │     2 │     3 │ ⋯ │\n    │     2 │     3 │     4 │   │\n    │     3 │     4 │     5 │   │\n    │     ⋮ │     ⋮ │     ⋮ │   │\n    └───────┴───────┴───────┴───┘\n    "
+                @test message == "Test `nrow(d) == 1` failed:\nValues:\n`nrow(d)` = 11\nd = ┌───────┬───────┬───────┬───┐\n    │    a1 │    a2 │    a3 │ … │\n    │ Int64 │ Int64 │ Int64 │   │\n    ├───────┼───────┼───────┼───┤\n    │     1 │     2 │     3 │ ⋯ │\n    │     2 │     3 │     4 │   │\n    │     3 │     4 │     5 │   │\n    │     ⋮ │     ⋮ │     ⋮ │   │\n    └───────┴───────┴───────┴───┘\n"
+
+                @Test io=io nrow(d_ref[]) == 1
+                message = String(take!(io))
+                @test message == "Test `nrow(d_ref[]) == 1` failed:\nValues:\n`nrow(d_ref[])` = 11\nd_ref[] = ┌───────┬───────┬───────┬───┐\n          │    a1 │    a2 │    a3 │ … │\n          │ Int64 │ Int64 │ Int64 │   │\n          ├───────┼───────┼───────┼───┤\n          │     1 │     2 │     3 │ ⋯ │\n          │     2 │     3 │     4 │   │\n          │     3 │     4 │     5 │   │\n          │     ⋮ │     ⋮ │     ⋮ │   │\n          └───────┴───────┴───────┴───┘\n"
+
             end
             @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
         end

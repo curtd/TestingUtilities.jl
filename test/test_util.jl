@@ -70,6 +70,13 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
                 TestingUtilities.show_value(df; io, max_num_rows_cols=(4, 3))
                 s = String(take!(io))
                 @test isequal(s, "┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     2 │     3 │     4 │   │\n│     3 │     4 │     5 │   │\n│     4 │     5 │     6 │   │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n")
+
+                TestingUtilities.show_value(Ref(df); io, max_num_rows_cols=(1,1))
+                s = String(take!(io))
+                @test isequal(s, "Ref(\n┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     ⋮ │   │\n└───────┴───┘\n)\n")
+                TestingUtilities.show_value(Ref(df); io, max_num_rows_cols=(2,3))
+                s = String(take!(io))
+                @test isequal(s, "Ref(\n┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     2 │     3 │     4 │   │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n)\n")
             end
         end
     end
