@@ -173,30 +173,5 @@ module TestingUtilitiesDataFramesExt
 
     TestingUtilities.will_show_diff(expected::AbstractDataFrame, result::AbstractDataFrame) = true
 
-    function TestingUtilities.show_value(value::AbstractDataFrame; io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[])
-        ctx = IOContext(io, :compact => compact)
-        show_truncated_df(ctx, value; max_num_rows_cols)
-    end
-
-    function TestingUtilities.show_value(name, value::AbstractDataFrame; io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[])
-        ctx = IOContext(io, :compact => compact)
-        _displaysz = displaysize(io) 
-        name_width = TestingUtilities._show_name(ctx, name)
-        print(ctx, " = ")
-        name_width += 3 
-        
-        io_indented = IOBuffer()
-        ioc_indented = IOContext(io_indented, :displaysize => (_displaysz[1], max(1, _displaysz[2] - name_width)), :compact => compact)
-        show_truncated_df(ioc_indented, value; max_num_rows_cols)
-        indented = String(take!(io_indented))
-        indent = ' '^name_width
-        for (i,line) in enumerate(split(indented, "\n"))
-            if i > 1 
-                println(ctx)
-                print(ctx, indent, line)
-            else 
-                print(ctx, line)
-            end
-        end
-    end
+    TestingUtilities.show_value(ctx::IOContext, value::AbstractDataFrame; max_num_rows_cols::Tuple{Int,Int} =  TestingUtilities.show_df_max_nrows_ncols[], kwargs...) = show_truncated_df(ctx, value; max_num_rows_cols, kwargs...)
 end

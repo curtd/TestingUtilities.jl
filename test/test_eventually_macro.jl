@@ -28,7 +28,7 @@
         b = Ref(false)
         @Test io=io b[]
         message = String(take!(io))
-        @test message == "Test `b[]` failed:\nValues:\nb = $b\n"
+        @test message == "Test `b[]` failed:\nValues:\nb[] = $(b[])\n"
     end
     @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
@@ -41,11 +41,11 @@
         @test_eventually io=io sleep=Millisecond(10) timeout=100ms f(done)
 
         message = String(take!(io))
-        @test message == "Test `f(done)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\ndone = $done\n"
+        @test message == "Test `f(done)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\ndone[] = $(done[])\n"
 
         @test_eventually io=io sleep=1s timeout=1s f(done)
         message = String(take!(io))
-        @test message == "Test `f(done)` failed:\nReason: Test took longer than 1000 milliseconds to pass\nValues:\ndone = $done\n"
+        @test message == "Test `f(done)` failed:\nReason: Test took longer than 1000 milliseconds to pass\nValues:\ndone[] = $(done[])\n"
 
         # Function returns within time limit and test passes
         done = Ref(false)
@@ -61,7 +61,7 @@
 
         message = String(take!(io))
 
-        @test message == "Test `f(done)` failed:\nValues:\ndone = $done\n"
+        @test message == "Test `f(done)` failed:\nValues:\ndone[] = $(done[])\n"
     end
     @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Pass, Test.Fail, Test.Pass))
 end
