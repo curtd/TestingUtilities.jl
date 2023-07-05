@@ -14,6 +14,8 @@ function is_atom(x)
     @switch x begin 
         @case ::Bool || ::Float64 || ::Int || ::String || ::QuoteNode || ::Char
             return true 
+        @case Expr(:quote, arg)
+            return true
         @case Expr(:$, arg) || Expr(:escape, arg)
             return is_atom(arg)
         @case Expr(:kw, lhs, rhs)
@@ -156,7 +158,7 @@ function _computational_graph_generator_expr!(arg_counter, current_graph, childr
 end
 
 function args_kwargs(expr)
-    ((expr isa Symbol) || any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function))) && @goto exit_early
+    ((expr isa Symbol) || any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function, :quote))) && @goto exit_early
         
     call_func, args, kwargs = parse_args_kwargs(expr)
 

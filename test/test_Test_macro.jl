@@ -284,6 +284,11 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             expr = :(f('c', x))
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(f('c', arg1)), :arg1 => :(x))
+
+            expr = :(g(x) == :(f(a,b)))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(arg1 == :(f(a,b))), :arg1 => :(g(arg2)), :arg2 => :x)
+
         end
     end
     @testset "@testset behaviour" begin 
@@ -379,6 +384,15 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test message == "Test `b() isa Vector` failed:\nValues:\n`b()` = Dict{String, Int64}()\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+
+        results = Test.@testset NoThrowTestSet "Failing test with quoted expressions" begin 
+            io = IOBuffer()
+            g = t->:($t)
+            @Test io=io g(:x) == :(f(a,b))
+            message = String(take!(io))
+            @test message == "Test `g(:x) == :(f(a, b))` failed:\nValues:\n`g(:x)` = :x\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass))
 
         results = Test.@testset NoThrowTestSet "Nested expression - single variable - success" begin 
             io = IOBuffer()
