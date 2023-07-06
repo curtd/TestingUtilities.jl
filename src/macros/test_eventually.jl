@@ -65,6 +65,9 @@ macro test_eventually(args...)
     initial_values_expr, test_expr = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
     
     source = QuoteNode(__source__)
+
+    original_ex_str = show_value_str(original_ex)
+
     return Base.remove_linenums!(quote 
         local TestingUtilities = $(@__MODULE__)
         local Dates = TestingUtilities.Dates
@@ -83,14 +86,14 @@ macro test_eventually(args...)
         end
         local max_time = $timeout_expr
         local sleep_time = $sleep_period_expr
-        local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(string(original_ex)))
+        local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(original_ex_str))
 
         local test_result = fetch(timer; throw_error=false)
         
         if isnothing(test_result)
             # Timed out 
             TestingUtilities.print_testeventually_data!(results_printer, max_time, failed_test_data, test_input_data)
-            test_result = TestingUtilities.Test.Threw(TestingUtilities.TestTimedOutException(max_time, $(string(original_ex))), [], $(source))
+            test_result = TestingUtilities.Test.Threw(TestingUtilities.TestTimedOutException(max_time, $(original_ex_str), [], $(source)))
         elseif TestingUtilities.test_did_not_succeed(test_result)
             TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
         end

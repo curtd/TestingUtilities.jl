@@ -127,3 +127,34 @@ function Base.fetch(t::TaskFinishedTimer{T}; throw_error::Bool=true) where {T}
         return nothing
     end
 end
+
+function remove_linenums!(ex)
+    @switch ex begin 
+        @case Expr(:macrocall, name, lnn, args...)
+            ex.args[2] = nothing
+            return nothing
+        @case Expr(:block, args...)
+            to_remove = Int[]
+            for (i,arg) in enumerate(args )
+                if arg isa LineNumberNode
+                    push!(to_remove, i)
+                else
+                    remove_linenums!(arg)
+                end
+            end
+            deleteat!(ex.args, to_remove)
+            return nothing
+        @case Expr(head, args...)
+            for arg in args 
+                remove_linenums!(arg)
+            end
+        @case _
+            return nothing
+    end
+end
+
+function remove_linenums(ex::Expr)
+    new_ex = deepcopy(ex)
+    remove_linenums!(new_ex)
+    return new_ex
+end

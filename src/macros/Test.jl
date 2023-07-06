@@ -21,91 +21,96 @@ function set_failed_values_in_main(failed_values::AbstractDict{<:Any,<:Any}, sho
     return nothing
 end
 
-is_input_value(x) = x isa Symbol || Meta.isexpr(x, :., 2)
+is_input_value(x) = x isa Symbol || Meta.isexpr(x, :., 2) || Meta.isexpr(x, :macrocall)
 
 function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     call_func, args, kwargs = parse_args_kwargs(original_ex)
     esc_f = escape ? esc : identity
     test_expr = Expr(:block)
-    args_to_use = []
-    arg_count = 1
-    mapped_args = Dict()
-    for arg in args 
-        @switch arg begin 
-            @case Expr(:generator, body, comprehension)
-                push!(args_to_use, Expr(:generator, esc_f(body), esc_f(comprehension)))
-            @case ::Expr
-                if is_atom(arg)
-                    push!(args_to_use, arg)
-                else
-                    arg_name = Symbol("arg_$(arg_count)")
-                    arg_count += 1
-                    push!(test_expr.args, :(local $arg_name = $(esc_f(arg))), :($record_data_dict[$(QuoteNode(arg))] = $arg_name))
-                    push!(args_to_use, arg_name)
-                    mapped_args[arg_name] = arg
-                end
-            @case _ 
-                arg_is_atom = is_atom(arg)
-                if !arg_is_atom && !is_ignored_symbol(arg)
-                    push!(test_expr.args, :($record_data_dict[$(QuoteNode(arg))] = $(esc_f(arg))))
-                end
-                if arg_is_atom
-                    push!(args_to_use, arg)
-                else
-                    push!(args_to_use, esc_f(arg))
-                end
-        end
-    end
-    
-    kwargs_to_use = []
-    for (k, v) in kwargs
-        if !is_atom(v)
-            arg_name = Symbol("arg_$(arg_count)")
-            arg_count += 1
-            push!(test_expr.args, :(local $arg_name = $(esc_f(v))), :($record_data_dict[($(QuoteNode(k)),$(QuoteNode(v)))] = $arg_name))
-            push!(kwargs_to_use, Expr(:kw, k, arg_name))
-            mapped_args[arg_name] = v
-        else
-            push!(kwargs_to_use, Expr(:kw, k, esc_f(v)))
-        end
-    end
     show_diff_exprs = []
-    if call_func in (:isequal, :(==), :(Base.(==))) && length(args_to_use) == 2
-        first_arg, second_arg = args_to_use
-        first_arg_unesc = unescape(first_arg)
-        second_arg_unesc = unescape(second_arg)
-        show_diff_expr = Expr(:(=), Expr(:ref, record_data_dict, QuoteNode(_SHOW_DIFF)))
-        keys = []
-        if (!is_atom(first_arg_unesc) && !is_atom(second_arg_unesc)) 
-            push!(keys, QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)) )
-            push!(keys, QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)) )
-            push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
-        elseif first_arg_unesc isa String 
-            if second_arg_unesc isa String 
-                push!(show_diff_expr.args, :((keys=[:expected, :result], values=Any[$first_arg, $second_arg])))
-            else
-                push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)))
-                push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
+    if should_recurse_children(original_ex)
+        args_to_use = []
+        arg_count = 1
+        mapped_args = Dict()
+        for arg in args 
+            @switch arg begin 
+                @case Expr(:generator, body, comprehension)
+                    push!(args_to_use, Expr(:generator, esc_f(body), esc_f(comprehension)))
+                @case ::Expr
+                    if is_atom(arg)
+                        push!(args_to_use, arg)
+                    else
+                        arg_name = Symbol("arg_$(arg_count)")
+                        arg_count += 1
+                        push!(test_expr.args, :(local $arg_name = $(esc_f(arg))), :($record_data_dict[$(QuoteNode(arg))] = $arg_name))
+                        push!(args_to_use, arg_name)
+                        mapped_args[arg_name] = arg
+                    end
+                @case _ 
+                    arg_is_atom = is_atom(arg)
+                    if !arg_is_atom && !is_ignored_symbol(arg)
+                        push!(test_expr.args, :($record_data_dict[$(QuoteNode(arg))] = $(esc_f(arg))))
+                    end
+                    if arg_is_atom
+                        push!(args_to_use, arg)
+                    else
+                        push!(args_to_use, esc_f(arg))
+                    end
             end
-        elseif second_arg_unesc isa String 
-            push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)))
-            push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$second_arg, $first_arg])) )
         end
-        if length(show_diff_expr.args) == 2
-            push!(show_diff_exprs, show_diff_expr)
+        
+        kwargs_to_use = []
+        for (k, v) in kwargs
+            if !is_atom(v)
+                arg_name = Symbol("arg_$(arg_count)")
+                arg_count += 1
+                push!(test_expr.args, :(local $arg_name = $(esc_f(v))), :($record_data_dict[($(QuoteNode(k)),$(QuoteNode(v)))] = $arg_name))
+                push!(kwargs_to_use, Expr(:kw, k, arg_name))
+                mapped_args[arg_name] = v
+            else
+                push!(kwargs_to_use, Expr(:kw, k, esc_f(v)))
+            end
         end
-    end
-   
-    if call_func in (:&&, :||, :comparison, :if, :ref)
-        eval_test_expr = Expr(call_func)
+       
+        if call_func in (:isequal, :(==), :(Base.(==))) && length(args_to_use) == 2
+            first_arg, second_arg = args_to_use
+            first_arg_unesc = unescape(first_arg)
+            second_arg_unesc = unescape(second_arg)
+            show_diff_expr = Expr(:(=), Expr(:ref, record_data_dict, QuoteNode(_SHOW_DIFF)))
+            keys = []
+            if (!is_atom(first_arg_unesc) && !is_atom(second_arg_unesc)) 
+                push!(keys, QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)) )
+                push!(keys, QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)) )
+                push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
+            elseif first_arg_unesc isa String 
+                if second_arg_unesc isa String 
+                    push!(show_diff_expr.args, :((keys=[:expected, :result], values=Any[$first_arg, $second_arg])))
+                else
+                    push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, second_arg_unesc, second_arg_unesc)))
+                    push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$first_arg, $second_arg])))
+                end
+            elseif second_arg_unesc isa String 
+                push!(keys, QuoteNode(:expected), QuoteNode(get(mapped_args, first_arg_unesc, first_arg_unesc)))
+                push!(show_diff_expr.args, :((keys=Any[$(keys...)], values=Any[$second_arg, $first_arg])) )
+            end
+            if length(show_diff_expr.args) == 2
+                push!(show_diff_exprs, show_diff_expr)
+            end
+        end
+    
+        if call_func in (:&&, :||, :comparison, :if, :ref)
+            eval_test_expr = Expr(call_func)
+        else
+            eval_test_expr = Expr(:call, esc_f(call_func))
+        end
+        if !isempty(kwargs_to_use)
+            push!(eval_test_expr.args, Expr(:parameters, kwargs_to_use...))
+        end
+        if !isempty(args_to_use)
+            push!(eval_test_expr.args, args_to_use...)
+        end
     else
-        eval_test_expr = Expr(:call, esc_f(call_func))
-    end
-    if !isempty(kwargs_to_use)
-        push!(eval_test_expr.args, Expr(:parameters, kwargs_to_use...))
-    end
-    if !isempty(args_to_use)
-        push!(eval_test_expr.args, args_to_use...)
+        eval_test_expr = esc_f(original_ex)
     end
     push!(test_expr.args, :(local _result = $(eval_test_expr)), :($record_data_dict[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))] = _result))
     append!(test_expr.args, show_diff_exprs)
