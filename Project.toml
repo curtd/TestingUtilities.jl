@@ -1,7 +1,7 @@
 name = "TestingUtilities"
 uuid = "40452611-1178-4e48-bdfc-3af4bebad9c9"
 authors = ["Curt Da Silva <curt.dasilva@gmail.com>"]
-version = "1.5.2"
+version = "1.5.3"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
