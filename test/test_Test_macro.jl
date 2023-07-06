@@ -24,6 +24,12 @@ const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
 
 append_char(x, c; n::Int) = x * repeat(c, n)
 
+macro sample_macro(f, x)
+    return quote 
+        $f($x)
+    end |> esc
+end
+
 @testset "@Test" begin 
     @testset "Util" begin 
         @testset "set_failed_values_in_main" begin 
@@ -289,6 +295,9 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(arg1 == :(f(a,b))), :arg1 => :(g(arg2)), :arg2 => :x)
 
+            expr = Expr(:call, :isequal, Expr(:macrocall, QuoteNode(Symbol("@a")), nothing, :a, :(f(x))), :(b))
+            result = TestingUtilities.computational_graph(expr)
+            @test result == OrderedDict(TEST_EXPR_KEY => Expr(:call, :isequal, :arg1, :arg2), :arg1 => Expr(:macrocall, QuoteNode(Symbol("@a")), nothing, :a, :(f(x))), :arg2 => :(b))
         end
     end
     @testset "@testset behaviour" begin 
@@ -391,6 +400,16 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @Test io=io g(:x) == :(f(a,b))
             message = String(take!(io))
             @test message == "Test `g(:x) == :(f(a, b))` failed:\nValues:\n`g(:x)` = :x\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass))
+
+        results = Test.@testset NoThrowTestSet "Failing test with macro expression" begin 
+            io = IOBuffer()
+            f = t->t^2 
+            a = 2
+            @Test io=io @sample_macro(f, a) > 5
+            message = String(take!(io))
+            @test message == "Test `@sample_macro(f, a) > 5` failed:\nValues:\n`@sample_macro(f, a)` = 4\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 

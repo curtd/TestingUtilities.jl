@@ -19,26 +19,26 @@ end
 
 function TestResultsPrinter(io::IO, original_ex::Expr)
     if Meta.isexpr(original_ex, :if, 3)
-        original_ex_str = "$(original_ex.args[1]) ? $(original_ex.args[2]) : $(original_ex.args[3])"
+        original_ex_str = "`$(original_ex.args[1]) ? $(original_ex.args[2]) : $(original_ex.args[3])`"
     else
-        original_ex_str = string(original_ex)
+        original_ex_str = show_value_str(original_ex; remove_line_nums=true)
     end
     return TestResultsPrinter(io, original_ex_str)
 end
 
 function print_header!(p::TestResultsPrinter, ::TestFailed)
-    if :toplevel ∉ p.printed_headers
-        println(p.io, "Test `", p.original_ex, "` failed:")
-        push!(p.printed_headers, :toplevel)
+    if :toplevel_failed ∉ p.printed_headers
+        println(p.io, "Test ", p.original_ex, " failed:")
+        push!(p.printed_headers, :toplevel_failed)
     end
     return nothing
 end
 
 function print_header!(p::TestResultsPrinter, t::TestTimedOut)
-    if :toplevel ∉ p.printed_headers
-        println(p.io, "Test `", p.original_ex, "` failed:")
+    print_header!(p, TestFailed())
+    if :toplevel_timeout ∉ p.printed_headers
         println(p.io, "Reason: Test took longer than $(t.timeout) to pass")
-        push!(p.printed_headers, :toplevel)
+        push!(p.printed_headers, :toplevel_timeout)
     end
     return nothing
 end

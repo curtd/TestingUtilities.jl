@@ -215,7 +215,7 @@ macro test_cases(args...)
 
         push!(show_all_test_data_expr.args, quote 
             if !isempty(failed_test_data[$i])
-                results_printer = TestingUtilities.TestResultsPrinter(io, $(string(evaluate_test_expr)))
+                results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(evaluate_test_expr)))
 
                 TestingUtilities.print_testcases_data!(results_printer, failed_test_data[$i])
             end

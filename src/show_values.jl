@@ -1,10 +1,12 @@
+function show_value_str(value; kwargs...)
+    io = IOBuffer()
+    show_value(io, value; kwargs...)
+    return String(take!(io))
+end
+
 function _show_name(ctx, name)
-    if name isa Expr
-        io = IOBuffer()
-        print(io, "`")
-        Base.show_unquoted(io, name)
-        print(io, "`")
-        _name = String(take!(io))
+    if name isa Expr 
+        _name = show_value_str(name)
     else
         _name = string(name)
     end
@@ -22,6 +24,23 @@ end
 function show_value(ctx::IOContext, value; kwargs...)
     println(ctx, repr(value))
     flush(ctx)
+    return nothing
+end
+
+function show_value(ctx::IOContext, value::Expr; remove_line_nums::Bool=false, kwargs...)
+    if Meta.isexpr(value, :macrocall)
+        remove_line_nums = true 
+    end
+    if remove_line_nums
+        value = remove_linenums(value)
+    end
+    print(ctx, '`')
+    if Meta.isexpr(value, :macrocall)
+        Base.show_unquoted(ctx, value)
+    else
+        print(ctx, string(value))
+    end
+    print(ctx, '`')
     return nothing
 end
 

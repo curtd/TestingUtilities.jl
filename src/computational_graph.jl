@@ -43,6 +43,17 @@ function is_atom(x)
     end
 end
 
+function should_recurse_children(x)
+    @switch x begin 
+        @case ::QuoteNode 
+            return false
+        @case Expr(head, args...) && if head in (:macrocall, ) end 
+            return false
+        @case _ 
+            return !is_atom(x)
+    end
+end
+
 safe_insert!(d, k, v) = !haskey(d, k) ? d[k] = v : nothing
 
 
@@ -158,7 +169,7 @@ function _computational_graph_generator_expr!(arg_counter, current_graph, childr
 end
 
 function args_kwargs(expr)
-    ((expr isa Symbol) || any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function, :quote))) && @goto exit_early
+    ((expr isa Symbol) || any(Meta.isexpr(expr, k) for k in (:if, :curly, :->, :function, :quote, :macrocall))) && @goto exit_early
         
     call_func, args, kwargs = parse_args_kwargs(expr)
 
@@ -182,8 +193,8 @@ function _computational_graph!(current_graph, expr)
     new_args = []
     new_kwargs = []
     for arg in args
-        should_ignore_sym = is_atom(arg) || is_reserved_syntax(arg) || is_ignored_symbol(arg)
-        if !should_ignore_sym && (arg isa Symbol || arg isa Expr)
+        should_ignore_arg = is_atom(arg) || is_reserved_syntax(arg) || is_ignored_symbol(arg)
+        if !should_ignore_arg && (arg isa Symbol || arg isa Expr)
             if Meta.isexpr(arg, :generator)
                 new_arg_expr = _computational_graph_generator_expr!(arg_counter, current_graph, children, arg)
                 push!(new_args, new_arg_expr)
@@ -200,7 +211,7 @@ function _computational_graph!(current_graph, expr)
                 end
             end
         else 
-            if !should_ignore_sym && !(arg isa QuoteNode)
+            if !should_ignore_arg 
                 push!(children, arg)
             end
             push!(new_args, arg)
