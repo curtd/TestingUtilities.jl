@@ -21,7 +21,7 @@ function TestResultsPrinter(io::IO, original_ex::Expr)
     if Meta.isexpr(original_ex, :if, 3)
         original_ex_str = "`$(original_ex.args[1]) ? $(original_ex.args[2]) : $(original_ex.args[3])`"
     else
-        original_ex_str = show_value_str(original_ex; remove_line_nums=true)
+        original_ex_str = show_value_str(original_ex; remove_line_nums=true, use_backticks=true)
     end
     return TestResultsPrinter(io, original_ex_str)
 end

@@ -1,12 +1,12 @@
 function show_value_str(value; kwargs...)
     io = IOBuffer()
-    show_value(io, value; kwargs...)
+    show_value(io, value; kwargs..., newline=false)
     return String(take!(io))
 end
 
 function _show_name(ctx, name)
     if name isa Expr 
-        _name = show_value_str(name)
+        _name = show_value_str(name; use_backticks=true)
     else
         _name = string(name)
     end
@@ -27,20 +27,31 @@ function show_value(ctx::IOContext, value; kwargs...)
     return nothing
 end
 
-function show_value(ctx::IOContext, value::Expr; remove_line_nums::Bool=false, kwargs...)
+function show_value(ctx::IOContext, value::Expr; remove_line_nums::Bool=false, use_backticks::Bool=true, newline::Bool=true, kwargs...)
     if Meta.isexpr(value, :macrocall)
         remove_line_nums = true 
     end
     if remove_line_nums
         value = remove_linenums(value)
     end
-    print(ctx, '`')
+    if use_backticks
+        print(ctx, '`')
+    else
+        print(ctx, ':', '(')
+    end
     if Meta.isexpr(value, :macrocall)
         Base.show_unquoted(ctx, value)
     else
         print(ctx, string(value))
     end
-    print(ctx, '`')
+    if use_backticks
+        print(ctx, '`')
+    else
+        print(ctx, ')')
+    end
+    if newline
+        println(ctx)
+    end
     return nothing
 end
 
@@ -69,12 +80,20 @@ function show_indented(show_value_func, ctx::IOContext, _displaysz::Tuple{Int,In
     end
     return length(indented_s) > 1
 end
-
-function show_name_value(show_value_func, ctx::IOContext, name, value; kwargs...)
+function __show_name(ctx, name)
     name_width = _show_name(ctx, name)
     print(ctx, " = ")
     name_width += 3 
+    return name_width
+end
+
+function show_name_value(show_value_func, ctx::IOContext, name, value; kwargs...)
+    name_width = __show_name(ctx, name)
     return show_indented(show_value_func, ctx, displaysize(ctx), value; indent=name_width, kwargs...)
+end
+function show_name_value(show_value_func, ctx::IOContext, name, value::Expr; kwargs...)
+    name_width = __show_name(ctx, name)
+    return show_indented(show_value_func, ctx, displaysize(ctx), value; indent=name_width, kwargs..., use_backticks=false)
 end
 
 function show_name_value(show_value_func, ctx::IOContext, name, value::Ref; kwargs...)

@@ -541,6 +541,17 @@ end
         end
         @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
 
+        results = Test.@testset NoThrowTestSet "QuoteNodes" begin 
+            io = IOBuffer()
+            f = (t,a)->:($t.$a)
+            t = :A
+            a = :b
+            @Test io=io f(t,a) == :(A.c)
+            message = String(take!(io))
+            @test message == "Test `f(t, a) == :(A.c)` failed:\nValues:\n`f(t, a)` = :(A.b)\nt = :A\na = :b\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass))
+
         results = Test.@testset NoThrowTestSet "Splatting" begin
             a = (1, 2)
             io = IOBuffer()
