@@ -14,6 +14,33 @@ module TestTestingUtilities
 
     run_df_tests = VERSION ≥ v"1.9"
 
+    struct ShowDiffChild1_1
+        x::String 
+        y::Int
+    end
+    
+    struct ShowDiffChild1_2
+        y::Bool 
+        z::Float64
+    end
+    
+    struct ShowDiffChild1_3 
+        a::Vector{Int}
+    end
+    
+    struct ShowDiffChild1
+        key1::Union{ShowDiffChild1_1, ShowDiffChild1_2}
+        key2::Dict{String, Any}
+    end
+    
+    struct ShowDiffChild2 
+        key3::Symbol
+    end
+    
+    struct ShowDiffParent 
+        child::Union{ShowDiffChild1, ShowDiffChild2}
+    end
+
     include("test_util.jl")
 
     include("test_settings.jl")

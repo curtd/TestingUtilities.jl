@@ -189,6 +189,79 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
                 end
             end
         end
+        @testset "Generic structs" begin 
+            expected_1_1 = ShowDiffChild1_1("abc", 1)
+            result_1_1 = ShowDiffChild1_1("ab", 1)
+            io = IOBuffer()
+            TestingUtilities.show_diff(expected_1_1, result_1_1; io=io)
+            message = String(take!(io))
+            ref_message = """
+            expected::$ShowDiffChild1_1 = $(expected_1_1)
+              result::$ShowDiffChild1_1 = $(result_1_1)
+
+            expected.x::String = "abc"
+              result.x::String = "ab"
+            """
+            @test message == ref_message
+            
+            expected_1_1 = ShowDiffChild1_1("abc", 2)
+            result_1_1 = ShowDiffChild1_1("ab", 1)
+            TestingUtilities.show_diff(expected_1_1, result_1_1; io=io)
+            message = String(take!(io))
+            ref_message = """
+            expected::$ShowDiffChild1_1 = $(expected_1_1)
+              result::$ShowDiffChild1_1 = $(result_1_1)
+
+            expected.x::String = "abc"
+              result.x::String = "ab"
+
+            expected.y::Int64 = 2
+              result.y::Int64 = 1
+            """
+            @test message == ref_message
+
+            expected_1 = ShowDiffChild1(expected_1_1, Dict{String, Any}())
+            result_1 = ShowDiffChild1(result_1_1, Dict{String, Any}())
+            TestingUtilities.show_diff(expected_1, result_1; io=io)
+            message = String(take!(io))
+            ref_message = """
+            expected::$ShowDiffChild1 = $(expected_1)
+              result::$ShowDiffChild1 = $(result_1)
+
+            expected.key1::$ShowDiffChild1_1 = $(expected_1.key1)
+              result.key1::$ShowDiffChild1_1 = $(result_1.key1)
+
+            expected.key1.x::String = "abc"
+              result.key1.x::String = "ab"
+
+            expected.key1.y::Int64 = 2
+              result.key1.y::Int64 = 1
+            """
+            @test message == ref_message
+
+            expected_1 = ShowDiffChild1(expected_1_1, Dict{String, Any}("b" => 1))
+            result_1 = ShowDiffChild1(result_1_1, Dict{String, Any}("z" => 0))
+            TestingUtilities.show_diff(expected_1, result_1; io=io)
+            message = String(take!(io))
+            ref_message = """
+            expected::$ShowDiffChild1 = $(expected_1)
+              result::$ShowDiffChild1 = $(result_1)
+
+            expected.key1::$ShowDiffChild1_1 = $(expected_1.key1)
+              result.key1::$ShowDiffChild1_1 = $(result_1.key1)
+
+            expected.key1.x::String = "abc"
+              result.key1.x::String = "ab"
+
+            expected.key1.y::Int64 = 2
+              result.key1.y::Int64 = 1
+            
+            expected.key2::Dict{String, Any} = $(expected_1.key2)
+              result.key2::Dict{String, Any} = $(result_1.key2)
+            """
+            @test message == ref_message
+
+        end
     end
 end
 

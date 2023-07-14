@@ -62,7 +62,7 @@ macro test_eventually(args...)
         sleep_period_expr = sleep_period_short_expr
     end
 
-    initial_values_expr, test_expr = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
+    initial_values_expr, test_expr, use_isequals_equality = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
     
     source = QuoteNode(__source__)
 
@@ -72,7 +72,7 @@ macro test_eventually(args...)
         local TestingUtilities = $(@__MODULE__)
         local Dates = TestingUtilities.Dates
         local io = $(esc(io_expr))
-        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)))
+        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)
         local failed_test_data = TestingUtilities.OrderedDict{Any,Any}()
 

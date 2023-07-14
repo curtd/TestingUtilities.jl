@@ -11,20 +11,24 @@ struct TestResultsPrinter
     original_ex::String
     printed_headers::Set{Symbol}
     values_already_shown::Set{Any}
+    use_isequals_equality::Bool
 end    
 
-function TestResultsPrinter(io::IO, original_ex::String)
-    return TestResultsPrinter(io, original_ex, Set{Symbol}(), Set{Any}([_DEFAULT_TEST_EXPR_KEY]))
+function TestResultsPrinter(io::IO, original_ex::String; use_isequals_equality::Bool=true)
+    return TestResultsPrinter(io, original_ex, Set{Symbol}(), Set{Any}([_DEFAULT_TEST_EXPR_KEY]), use_isequals_equality)
 end
 
-function TestResultsPrinter(io::IO, original_ex::Expr)
+function TestResultsPrinter(io::IO, original_ex::Expr; kwargs...)
     if Meta.isexpr(original_ex, :if, 3)
         original_ex_str = "`$(original_ex.args[1]) ? $(original_ex.args[2]) : $(original_ex.args[3])`"
     else
         original_ex_str = show_value_str(original_ex; remove_line_nums=true, use_backticks=true)
     end
-    return TestResultsPrinter(io, original_ex_str)
+    return TestResultsPrinter(io, original_ex_str; kwargs...)
 end
+
+TestResultsPrinter(io::IO, original_ex::Symbol; kwargs...) = TestResultsPrinter(io, "`$original_ex`"; kwargs...)
+TestResultsPrinter(io::IO, original_ex; kwargs...) = TestResultsPrinter(io, string(original_ex); kwargs...)
 
 function print_header!(p::TestResultsPrinter, ::TestFailed)
     if :toplevel_failed ∉ p.printed_headers
@@ -53,13 +57,18 @@ end
 
 function print_show_diff!(p::TestResultsPrinter, failed_test_data)
     if haskey(failed_test_data, _SHOW_DIFF)
+        print_header!(p, TestFailed())
         data = failed_test_data[_SHOW_DIFF]
         key1, key2 = data.keys
         value1, value2 = data.values
-        if will_show_diff(value1, value2)
-            show_diff(value1, value2; expected_name=key1, result_name=key2, io=p.io, results_printer=p)
-            push!(p.values_already_shown, key1, key2)
+        if (T_key1 = typeof(value1); T_key2 = typeof(value2); isstructtype(T_key1) && isstructtype(T_key2) && should_print_differing_fields_header(T_key1) && should_print_differing_fields_header(T_key2))
+            println(p. io, "Differing fields between `$(key1)` and `$(key2)`:\n")
+            show_type_str = true
+        else 
+            show_type_str = false
         end
+        show_diff(value1, value2; expected_name=key1, result_name=key2, io=p.io, results_printer=p, show_type_str=show_type_str)
+        push!(p.values_already_shown, key1, key2)
         push!(p.values_already_shown, _SHOW_DIFF)
     end
 end
