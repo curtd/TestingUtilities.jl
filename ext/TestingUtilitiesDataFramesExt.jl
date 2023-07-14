@@ -87,9 +87,8 @@ module TestingUtilitiesDataFramesExt
         return pretty_table(io, df_to_show; kwargs..., highlighters, formatters)
     end
 
-    function TestingUtilities.show_diff(expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", io=stderr, compact::Bool=true, max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], kwargs...)
-        ctx = IOContext(io, :compact => compact)
-        has_colour = get(io, :color, false)
+    function TestingUtilities.show_diff(::TestingUtilities.IsStructType, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, kwargs...)
+        has_colour = get(ctx, :color, false)
         expected_names = propertynames(expected)
         result_names = propertynames(result)
         not_in_result_names = setdiff(expected_names, result_names)
@@ -171,7 +170,7 @@ module TestingUtilitiesDataFramesExt
         return true
     end
 
-    TestingUtilities.will_show_diff(expected::AbstractDataFrame, result::AbstractDataFrame) = true
-
     TestingUtilities.show_value(ctx::IOContext, value::AbstractDataFrame; max_num_rows_cols::Tuple{Int,Int} =  TestingUtilities.show_df_max_nrows_ncols[], kwargs...) = show_truncated_df(ctx, value; max_num_rows_cols, kwargs...)
+
+    TestingUtilities.should_print_differing_fields_header(::Type{<:AbstractDataFrame}) = false
 end

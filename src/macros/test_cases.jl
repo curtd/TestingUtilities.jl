@@ -187,7 +187,7 @@ macro test_cases(args...)
     run_tests_body = Expr(:block, assign_values_expr)
     for (i, evaluate_test_expr) in enumerate(evaluate_test_exprs)
         
-        new_test_expr = generate_test_expr(evaluate_test_expr, :(local_evaluate_test_data[$i]); escape=false)
+        new_test_expr, use_isequals_equality = generate_test_expr(evaluate_test_expr, :(local_evaluate_test_data[$i]); escape=false)
         push!(run_tests_body.args, Base.remove_linenums!( 
             quote 
                 empty!(local_evaluate_test_data[$i])
@@ -215,8 +215,7 @@ macro test_cases(args...)
 
         push!(show_all_test_data_expr.args, quote 
             if !isempty(failed_test_data[$i])
-                results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(evaluate_test_expr)))
-
+                results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(evaluate_test_expr)); use_isequals_equality=$use_isequals_equality)
                 TestingUtilities.print_testcases_data!(results_printer, failed_test_data[$i])
             end
         end)

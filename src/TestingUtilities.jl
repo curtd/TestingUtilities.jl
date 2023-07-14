@@ -17,6 +17,8 @@ module TestingUtilities
     include("settings.jl")
 
     include("show_values.jl")
+
+    include("show_diff/_show_diff.jl")
     
     include("macro_util.jl")
 

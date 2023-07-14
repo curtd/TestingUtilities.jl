@@ -132,7 +132,20 @@ append_char(x, c; n::Int) = x * repeat(c, n)
             @test append_char(a, b; n=3) == output
         end
         message = String(take!(io))
-        @test message ==  "Test `append_char(a, b; n = 3) == output` failed:\nValues:\n------\nappend_char(a, b; n = 3) = \"abcddd\"\noutput                   = \"abcd\"\na = \"abc\"\nb = 'd'\n------\nappend_char(a, b; n = 3) = \"abceee\"\noutput                   = \"abce\"\na = \"abc\"\nb = 'e'\n"
+        ref_message = """Test `append_char(a, b; n = 3) == output` failed:
+        Values:
+        ------
+        `append_char(a, b; n = 3)` = "abcddd"
+        output                     = "abcd"
+        a = "abc"
+        b = 'd'
+        ------
+        `append_char(a, b; n = 3)` = "abceee"
+        output                     = "abce"
+        a = "abc"
+        b = 'e'
+        """
+        @test message == ref_message
     end
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass))
 end

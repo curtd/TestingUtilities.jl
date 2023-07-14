@@ -11,7 +11,7 @@ function set_failed_values_in_main(failed_values::AbstractDict{<:Any,<:Any}, sho
         for (key, value) in pairs(failed_values)
             !(key isa Symbol) && continue
             if key ∉ _imported_names_in_main
-                push!(set_failed_values_sub_expr.args, Expr(:(=), key, value))
+                push!(set_failed_values_sub_expr.args, Expr(:(=), key, value isa Symbol || value isa Expr ? QuoteNode(value) : value))
             elseif testing_setting(EmitWarnings)
                 @warn "Variable $key (= $value) not set in $_module -- name already exists and is imported in module"
             end
@@ -72,7 +72,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
             end
         end
        
-        if call_func in (:isequal, :(==), :(Base.(==))) && length(args_to_use) == 2
+        if call_func in (:isequal, :(==), :(Base.(==)), :(Base.isequals)) && length(args_to_use) == 2
             first_arg, second_arg = args_to_use
             first_arg_unesc = unescape(first_arg)
             second_arg_unesc = unescape(second_arg)
@@ -96,6 +96,9 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
             if length(show_diff_expr.args) == 2
                 push!(show_diff_exprs, show_diff_expr)
             end
+            use_isequals_equality = call_func in (:isequal, :(Base.isequals))
+        else 
+            use_isequals_equality = true
         end
     
         if call_func in (:&&, :||, :comparison, :if, :ref)
@@ -114,7 +117,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     end
     push!(test_expr.args, :(local _result = $(eval_test_expr)), :($record_data_dict[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))] = _result))
     append!(test_expr.args, show_diff_exprs)
-    return test_expr
+    return test_expr, use_isequals_equality
 end
 
 function generate_show_diff_expr(already_shown_name, failed_testdata_name)
@@ -124,9 +127,9 @@ function generate_show_diff_expr(already_shown_name, failed_testdata_name)
             key1, key2 = data.keys
             value1, value2 = data.values
 
-            if TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
-                push!($(already_shown_name), key1, key2)
-            end
+            TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
+            push!($(already_shown_name), key1, key2)
+            
           
             push!($(already_shown_name), $(QuoteNode(_SHOW_DIFF)))
             true
@@ -141,8 +144,9 @@ function test_expr_and_init_values(original_ex, failed_test_data_name::Symbol, r
     all_input_values = [v for v in values(comp_graph) if is_input_value(v)]
     if original_ex isa Symbol 
         test_expr = Expr(:block, :(local $result_name = $(esc(original_ex))), :($failed_test_data_name[$(QuoteNode(_DEFAULT_TEST_EXPR_KEY))] = $result_name))
+        use_isequals_equality = true
     else
-        test_expr = generate_test_expr(original_ex, failed_test_data_name)
+        test_expr, use_isequals_equality = generate_test_expr(original_ex, failed_test_data_name)
     end
     set_failed_test_data_args = []
     if !(original_ex isa Symbol)
@@ -151,7 +155,7 @@ function test_expr_and_init_values(original_ex, failed_test_data_name::Symbol, r
         end
     end
     initial_values_expr = :(TestingUtilities.OrderedDict{Any,Any}( $( set_failed_test_data_args... )))
-    return initial_values_expr, test_expr
+    return initial_values_expr, test_expr, use_isequals_equality
 end
 
 function test_show_values_expr(results_printer_name::Symbol, failed_test_data_sym::Symbol, test_input_data_sym::Symbol; should_set_failed_values)
@@ -172,7 +176,7 @@ end
 
 function Test_expr(original_ex; io_expr, should_set_failed_values, _sourceinfo)
     source = QuoteNode(_sourceinfo)
-    initial_values_expr, test_expr = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
+    initial_values_expr, test_expr, use_isequals_equality = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
 
     show_test_data_expr = Base.remove_linenums!(quote 
         let results_printer=results_printer, failed_test_data=failed_test_data, test_input_data=test_input_data, TestingUtilities=$(@__MODULE__) 
@@ -189,7 +193,7 @@ function Test_expr(original_ex; io_expr, should_set_failed_values, _sourceinfo)
     output = Base.remove_linenums!(quote 
         local TestingUtilities = $(@__MODULE__)
         local io = $(esc(io_expr))
-        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)))
+        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)
         local failed_test_data = TestingUtilities.OrderedDict{Any,Any}()
 

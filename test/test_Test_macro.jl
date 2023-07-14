@@ -307,12 +307,35 @@ end
             @Test io=io a == 2 
             message = String(take!(io))
             @test message == "Test `a == 2` failed:\nValues:\na = $a\n"
+            c = 2
+            @Test io=io a == c 
+            message = String(take!(io))
+            @test message == "Test `a == c` failed:\na = 1\nc = 2\n"
+
+            x = ShowDiffChild1_1("abc", 2)
+            ref_x = ShowDiffChild1_1("ab", 1)
+            @Test io=io isequal(x, ref_x)
+            message = String(take!(io))
+            ref_message = """Test `isequal(x, ref_x)` failed:
+            Differing fields between `x` and `ref_x`:
+            
+                x::$ShowDiffChild1_1 = $x
+            ref_x::$ShowDiffChild1_1 = $ref_x
+            
+                x.x::String = "abc"
+            ref_x.x::String = "ab"
+            
+                x.y::Int64 = 2
+            ref_x.y::Int64 = 1
+            """
+            @test message == ref_message
+
             b = Ref(false)
             @Test io=io b[]
             message = String(take!(io))
             @test message == "Test `b[]` failed:\nValues:\nb[] = $(b[])\n"
         end
-        @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+        @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:4]) |> collect)
 
         results = Test.@testset NoThrowTestSet "Comparison to string" begin 
             io = IOBuffer()
@@ -320,18 +343,38 @@ end
             b = "abcd"
             @Test io=io a == "def" 
             message = String(take!(io))
-            @test message == "Test `a == \"def\"` failed:\nValues:\nexpected = \"def\"\na        = \"abc\"\n"
+            ref_message = """
+            Test `a == "def"` failed:
+            Values:
+            expected = "def"
+            a        = "abc"
+            """
+            @test message == ref_message
             @Test io=io a == b
             message = String(take!(io))
             @test message == "Test `a == b` failed:\nValues:\na = \"abc\"\nb = \"abcd\"\n"
             @Test io=io append_char(a,'d'; n=5) == b 
             message = String(take!(io))
-            @test message == "Test `append_char(a, 'd'; n = 5) == b` failed:\nValues:\nappend_char(a, 'd'; n = 5) = \"abcddddd\"\nb                          = \"abcd\"\na = \"abc\"\n"
+            ref_message = """
+            Test `append_char(a, 'd'; n = 5) == b` failed:
+            Values:
+            `append_char(a, 'd'; n = 5)` = "abcddddd"
+            b                            = "abcd"
+            a = "abc"
+            """
+            @test message == ref_message
             @Test io=io isequal("abcde", append_char(a,'d'; n=3))
             message = String(take!(io))
-            @test message == "Test `isequal(\"abcde\", append_char(a, 'd'; n = 3))` failed:\nValues:\nexpected                   = \"abcde\"\nappend_char(a, 'd'; n = 3) = \"abcddd\"\na = \"abc\"\n"
+            ref_message = """
+            Test `isequal("abcde", append_char(a, 'd'; n = 3))` failed:
+            Values:
+            expected                     = "abcde"
+            `append_char(a, 'd'; n = 3)` = "abcddd"
+            a = "abc"
+            """
+            @test message == ref_message
         end
-        @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+        @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:4]) |> collect)
 
         if run_df_tests
             TestingUtilities.set_show_df_opts(; max_num_rows=3, max_num_cols=3)
@@ -347,26 +390,74 @@ end
                 
                 @Test io=io a == b 
                 message = String(take!(io))
-                @test message == "Test `a == b` failed:\nReason: `propertynames(a) != propertynames(b)`\n`propertynames(a)` = {:c, :b}\n`propertynames(b)` = {:c, :d}\n"
+                ref_message = """Test `a == b` failed:
+                Reason: `propertynames(a) != propertynames(b)`
+                `propertynames(a)` = {:c, :b}
+                `propertynames(b)` = {:c, :d}
+                """
+                @test message == ref_message
 
                 @Test io=io a == a2
                 message = String(take!(io))
-                @test message == "Test `a == a2` failed:\nReason: `nrow(a) != nrow(a2)`\n`nrow(a)`  = 3\n`nrow(a2)` = 2\n"
+                ref_message = """Test `a == a2` failed:
+                Reason: `nrow(a) != nrow(a2)`
+                `nrow(a)`  = 3
+                `nrow(a2)` = 2
+                """
+                @test message == ref_message
 
                 @Test io=io a == c 
                 message = String(take!(io))
-                @test message == "Test `a == c` failed:\nReason: Mismatched values\n┌───────────────────┬────────┬───────┬─────────┐\n│           row_num │     df │     b │       c │\n│ U{Nothing, Int64} │ Symbol │ Int64 │ Float64 │\n├───────────────────┼────────┼───────┼─────────┤\n│                 1 │      a │     1 │     1.0 │\n│                   │      c │     1 │    -1.0 │\n│                 2 │      a │     2 │     2.0 │\n│                   │      c │    -2 │     2.0 │\n└───────────────────┴────────┴───────┴─────────┘\n"
+                ref_message = """Test `a == c` failed:
+                Reason: Mismatched values
+                ┌───────────────────┬────────┬───────┬─────────┐
+                │           row_num │     df │     b │       c │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │ Float64 │
+                ├───────────────────┼────────┼───────┼─────────┤
+                │                 1 │      a │     1 │     1.0 │
+                │                   │      c │     1 │    -1.0 │
+                │                 2 │      a │     2 │     2.0 │
+                │                   │      c │    -2 │     2.0 │
+                └───────────────────┴────────┴───────┴─────────┘
+                """
+                @test message == ref_message
 
                 @Test io=io nrow(d) == 1
                 message = String(take!(io))
-                @test message == "Test `nrow(d) == 1` failed:\nValues:\n`nrow(d)` = 11\nd = ┌───────┬───────┬───────┬───┐\n    │    a1 │    a2 │    a3 │ … │\n    │ Int64 │ Int64 │ Int64 │   │\n    ├───────┼───────┼───────┼───┤\n    │     1 │     2 │     3 │ ⋯ │\n    │     2 │     3 │     4 │   │\n    │     3 │     4 │     5 │   │\n    │     ⋮ │     ⋮ │     ⋮ │   │\n    └───────┴───────┴───────┴───┘\n"
+                ref_message = """Test `nrow(d) == 1` failed:
+                Values:
+                `nrow(d)` = 11
+                d = ┌───────┬───────┬───────┬───┐
+                    │    a1 │    a2 │    a3 │ … │
+                    │ Int64 │ Int64 │ Int64 │   │
+                    ├───────┼───────┼───────┼───┤
+                    │     1 │     2 │     3 │ ⋯ │
+                    │     2 │     3 │     4 │   │
+                    │     3 │     4 │     5 │   │
+                    │     ⋮ │     ⋮ │     ⋮ │   │
+                    └───────┴───────┴───────┴───┘
+                """
+                @test message == ref_message
 
                 @Test io=io nrow(d_ref[]) == 1
                 message = String(take!(io))
-                @test message == "Test `nrow(d_ref[]) == 1` failed:\nValues:\n`nrow(d_ref[])` = 11\nd_ref[] = ┌───────┬───────┬───────┬───┐\n          │    a1 │    a2 │    a3 │ … │\n          │ Int64 │ Int64 │ Int64 │   │\n          ├───────┼───────┼───────┼───┤\n          │     1 │     2 │     3 │ ⋯ │\n          │     2 │     3 │     4 │   │\n          │     3 │     4 │     5 │   │\n          │     ⋮ │     ⋮ │     ⋮ │   │\n          └───────┴───────┴───────┴───┘\n"
+                ref_message = """Test `nrow(d_ref[]) == 1` failed:
+                Values:
+                `nrow(d_ref[])` = 11
+                d_ref[] = ┌───────┬───────┬───────┬───┐
+                          │    a1 │    a2 │    a3 │ … │
+                          │ Int64 │ Int64 │ Int64 │   │
+                          ├───────┼───────┼───────┼───┤
+                          │     1 │     2 │     3 │ ⋯ │
+                          │     2 │     3 │     4 │   │
+                          │     3 │     4 │     5 │   │
+                          │     ⋮ │     ⋮ │     ⋮ │   │
+                          └───────┴───────┴───────┴───┘
+                """
+                @test message == ref_message
 
             end
-            @test test_results_match(results, (Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass))
+            @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:5]) |> collect)
         end
 
         results = Test.@testset NoThrowTestSet "Invalid Test" begin 
@@ -380,7 +471,7 @@ end
             message = String(take!(io))
             @test message == "Test `a ^ 2` failed:\nValues:\na = $a\n"
         end
-        @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass))
+        @test test_results_match(results, Iterators.flatten([(Test.Error, Test.Pass) for _ in 1:2]) |> collect)
 
         results = Test.@testset NoThrowTestSet "Failing test with curly expressions" begin 
             io = IOBuffer()
