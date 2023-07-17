@@ -28,6 +28,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
     esc_f = escape ? esc : identity
     test_expr = Expr(:block)
     show_diff_exprs = []
+    use_isequals_equality = true
     if should_recurse_children(original_ex)
         args_to_use = []
         arg_count = 1
@@ -97,8 +98,6 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
                 push!(show_diff_exprs, show_diff_expr)
             end
             use_isequals_equality = call_func in (:isequal, :(Base.isequals))
-        else 
-            use_isequals_equality = true
         end
     
         if call_func in (:&&, :||, :comparison, :if, :ref)
