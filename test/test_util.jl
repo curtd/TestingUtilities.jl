@@ -58,25 +58,101 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
             @testset "DataFrame" begin 
                 io = IOBuffer()
                 df = DataFrame( (Symbol("a$i") => (i:i+10) for i in 1:10)... )
-                TestingUtilities.show_value(df; io, max_num_rows_cols=(1,1))
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(1,1), keyword_to_ignore=:abcd)
                 s = String(take!(io))
-                @test isequal(s, "┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     ⋮ │   │\n└───────┴───┘\n")
+                ref_str = """
+                ┌───────┬───┐
+                │    a1 │ … │
+                │ Int64 │   │
+                ├───────┼───┤
+                │     1 │ ⋯ │
+                │     ⋮ │   │
+                └───────┴───┘
+                """
+                @test isequal(s, ref_str)
+                TestingUtilities.show_value(df; io, max_num_rows_cols=(1,1), keyword_to_ignore=:abcd, alignment=:l)
+                s = String(take!(io))
+                ref_str = """
+                ┌───────┬───┐
+                │ a1    │ … │
+                │ Int64 │   │
+                ├───────┼───┤
+                │ 1     │ ⋯ │
+                │ ⋮     │   │
+                └───────┴───┘
+                """
+                @test isequal(s, ref_str)
                 TestingUtilities.show_value(df; io, max_num_rows_cols=(3,1))
                 s = String(take!(io))
-                @test isequal(s, "┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     2 │   │\n│     3 │   │\n│     ⋮ │   │\n└───────┴───┘\n")
+                ref_str = """
+                ┌───────┬───┐
+                │    a1 │ … │
+                │ Int64 │   │
+                ├───────┼───┤
+                │     1 │ ⋯ │
+                │     2 │   │
+                │     3 │   │
+                │     ⋮ │   │
+                └───────┴───┘
+                """
+                @test isequal(s, ref_str)
                 TestingUtilities.show_value(df; io, max_num_rows_cols=(1, 3))
                 s = String(take!(io))
-                @test isequal(s, "┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n")
+                ref_str = """
+                ┌───────┬───────┬───────┬───┐
+                │    a1 │    a2 │    a3 │ … │
+                │ Int64 │ Int64 │ Int64 │   │
+                ├───────┼───────┼───────┼───┤
+                │     1 │     2 │     3 │ ⋯ │
+                │     ⋮ │     ⋮ │     ⋮ │   │
+                └───────┴───────┴───────┴───┘
+                """
+                @test isequal(s, ref_str)
                 TestingUtilities.show_value(df; io, max_num_rows_cols=(4, 3))
                 s = String(take!(io))
-                @test isequal(s, "┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     2 │     3 │     4 │   │\n│     3 │     4 │     5 │   │\n│     4 │     5 │     6 │   │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n")
+                ref_str = """
+                ┌───────┬───────┬───────┬───┐
+                │    a1 │    a2 │    a3 │ … │
+                │ Int64 │ Int64 │ Int64 │   │
+                ├───────┼───────┼───────┼───┤
+                │     1 │     2 │     3 │ ⋯ │
+                │     2 │     3 │     4 │   │
+                │     3 │     4 │     5 │   │
+                │     4 │     5 │     6 │   │
+                │     ⋮ │     ⋮ │     ⋮ │   │
+                └───────┴───────┴───────┴───┘
+                """
+                @test isequal(s, ref_str)
 
                 TestingUtilities.show_value(Ref(df); io, max_num_rows_cols=(1,1))
                 s = String(take!(io))
-                @test isequal(s, "Ref(\n┌───────┬───┐\n│    a1 │ … │\n│ Int64 │   │\n├───────┼───┤\n│     1 │ ⋯ │\n│     ⋮ │   │\n└───────┴───┘\n)\n")
+                ref_str = """
+                Ref(
+                ┌───────┬───┐
+                │    a1 │ … │
+                │ Int64 │   │
+                ├───────┼───┤
+                │     1 │ ⋯ │
+                │     ⋮ │   │
+                └───────┴───┘
+                )
+                """
+                @test isequal(s, ref_str)
                 TestingUtilities.show_value(Ref(df); io, max_num_rows_cols=(2,3))
                 s = String(take!(io))
-                @test isequal(s, "Ref(\n┌───────┬───────┬───────┬───┐\n│    a1 │    a2 │    a3 │ … │\n│ Int64 │ Int64 │ Int64 │   │\n├───────┼───────┼───────┼───┤\n│     1 │     2 │     3 │ ⋯ │\n│     2 │     3 │     4 │   │\n│     ⋮ │     ⋮ │     ⋮ │   │\n└───────┴───────┴───────┴───┘\n)\n")
+                ref_str = """
+                Ref(
+                ┌───────┬───────┬───────┬───┐
+                │    a1 │    a2 │    a3 │ … │
+                │ Int64 │ Int64 │ Int64 │   │
+                ├───────┼───────┼───────┼───┤
+                │     1 │     2 │     3 │ ⋯ │
+                │     2 │     3 │     4 │   │
+                │     ⋮ │     ⋮ │     ⋮ │   │
+                └───────┴───────┴───────┴───┘
+                )
+                """
+                @test isequal(s, ref_str)
             end
         end
     end
