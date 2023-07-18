@@ -1,7 +1,8 @@
-function differing_fields(expected::T, result::T; use_isequals_equality::Bool=true) where {T}
+function differing_fields(expected, expected_fields, result, result_fields; use_isequals_equality::Bool=true)
+    common_fields = intersect(expected_fields, result_fields)
     fields = Symbol[]
     f = use_isequals_equality ? Base.isequal : Base.:(==)
-    for field in fieldnames(T)
+    for field in common_fields
         if !(f(getfield(expected, field), getfield(result, field))::Bool) 
             push!(fields, field)
         end
@@ -31,7 +32,7 @@ function show_diff(::IsStructType, ctx::IOContext, expected, result; expected_na
     show_diff_generic(ctx, expected, result; expected_name=expected_name_str, result_name=result_name_str, expected_type_str=T_expected_str, result_type_str=T_result_str)
 
     if recurse && !isempty(expected_fields) && !should_ignore_struct_type(T_expected) && !should_ignore_struct_type(T_result)
-        fields = differing_fields(expected, result; use_isequals_equality=use_isequals_equality)
+        fields = differing_fields(expected, expected_fields, result, result_fields; use_isequals_equality=use_isequals_equality)
         if isempty(fields)
             println(ctx, "Reason: `$expected_name_str::$T_expected_str and $result_name_str::$T_result_str have no differing fields, but are still not equal according to Base.$(use_isequals_equality ? :isequal : :(==)) -- an explicit method definition for this equality operator may not have been provided for these types`")
         else
