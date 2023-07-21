@@ -126,7 +126,7 @@ function generate_show_diff_expr(already_shown_name, failed_testdata_name)
             key1, key2 = data.keys
             value1, value2 = data.values
 
-            TestingUtilities.show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
+            $show_diff(value1, value2; expected_name=key1, result_name=key2, io, print_values_header)
             push!($(already_shown_name), key1, key2)
             
           
@@ -162,10 +162,10 @@ function test_show_values_expr(results_printer_name::Symbol, failed_test_data_sy
     show_values_func_expr = Base.remove_linenums!(quote 
         let results_printer=$results_printer_name, failed_test_data=$failed_test_data_sym, test_input_data=$test_input_data_sym, TestingUtilities=$(@__MODULE__) 
             function()
-                if !TestingUtilities.has_printed(results_printer)
-                    TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
+                if !$has_printed(results_printer)
+                    $print_Test_data!(results_printer, failed_test_data, test_input_data)
                 
-                    TestingUtilities.set_failed_values_in_main($test_input_data_sym, $(should_set_failed_values))
+                    $set_failed_values_in_main($test_input_data_sym, $(should_set_failed_values))
                 end
             end
         end
@@ -178,12 +178,12 @@ function Test_expr(original_ex; io_expr, should_set_failed_values, _sourceinfo)
     initial_values_expr, test_expr, use_isequals_equality = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
 
     show_test_data_expr = Base.remove_linenums!(quote 
-        let results_printer=results_printer, failed_test_data=failed_test_data, test_input_data=test_input_data, TestingUtilities=$(@__MODULE__) 
+        let results_printer=results_printer, failed_test_data=failed_test_data, test_input_data=test_input_data
             function()
-                if !TestingUtilities.has_printed(results_printer)
-                    TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
+                if !$has_printed(results_printer)
+                    $print_Test_data!(results_printer, failed_test_data, test_input_data)
                 
-                    TestingUtilities.set_failed_values_in_main(test_input_data, $(should_set_failed_values))
+                    $set_failed_values_in_main(test_input_data, $(should_set_failed_values))
                 end
             end
         end
@@ -192,24 +192,24 @@ function Test_expr(original_ex; io_expr, should_set_failed_values, _sourceinfo)
     output = Base.remove_linenums!(quote 
         local TestingUtilities = $(@__MODULE__)
         local io = $(esc(io_expr))
-        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
+        local results_printer = $TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)
-        local failed_test_data = TestingUtilities.OrderedDict{Any,Any}()
+        local failed_test_data = $OrderedDict{Any,Any}()
 
         local show_all_test_data = $(show_test_data_expr)
 
         local test_result = try 
             $(test_expr)
-            TestingUtilities.Test.Returned(_result, _result, $(source))
+            $Test.Returned(_result, _result, $(source))
         catch _e 
             show_all_test_data()
             _e isa InterruptException && rethrow()
-            TestingUtilities.Test.Threw(_e, Base.current_exceptions(), $(source))
+            $Test.Threw(_e, Base.current_exceptions(), $(source))
         end
-        if TestingUtilities.test_did_not_succeed(test_result)
+        if $test_did_not_succeed(test_result)
             show_all_test_data()
         end
-        TestingUtilities.Test.do_test(test_result, $(QuoteNode(original_ex)))
+        $Test.do_test(test_result, $(QuoteNode(original_ex)))
     end)
     return output
 end

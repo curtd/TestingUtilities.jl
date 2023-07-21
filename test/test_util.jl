@@ -338,6 +338,17 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
             @test message == ref_message
 
         end
+        @testset "Generic values" begin 
+            expected_1_1 = ShowDiffChild1_1("abc", 1)
+            io = IOBuffer()
+            TestingUtilities.show_diff(expected_1_1, 10; io=io)
+            message = String(take!(io))
+            @test message == "Reason: Mismatched type categories\nexpected::$ShowDiffChild1_1 is a Struct, but result::$Int is a generic value\n"
+        
+            TestingUtilities.show_diff(Int, String; io=io)
+            message = String(take!(io))
+            @test message == "expected = $Int\nresult = $String\n"
+        end
     end
 end
 

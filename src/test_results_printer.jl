@@ -61,7 +61,7 @@ function print_show_diff!(p::TestResultsPrinter, failed_test_data)
         data = failed_test_data[_SHOW_DIFF]
         key1, key2 = data.keys
         value1, value2 = data.values
-        if (T_key1 = typeof(value1); T_key2 = typeof(value2); isstructtype(T_key1) && isstructtype(T_key2) && should_print_differing_fields_header(T_key1) && should_print_differing_fields_header(T_key2))
+        if (T_key1 = typeof(value1); T_key2 = typeof(value2); ((type_category(T_key1) == StructTypeCat()) && (type_category(T_key2) == StructTypeCat()) && should_print_differing_fields_header(T_key1) && should_print_differing_fields_header(T_key2)))
             println(p. io, "Differing fields between `$(key1)` and `$(key2)`:\n")
             show_type_str = true
         else 
