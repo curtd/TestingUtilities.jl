@@ -60,11 +60,11 @@ for T in (String, AbstractDict, AbstractVector, AbstractSet)
     @eval should_print_differing_fields_header(::Type{<:$T}) = false
 end
 
-function append_type_str(header::String, type_str::String)
+function append_type_str(header, type_str::String)
     if !isempty(type_str)
-        return header*"::$type_str"
+        return string(header)*"::$type_str"
     else
-        return header
+        return string(header)
     end
 end
 
@@ -72,8 +72,36 @@ function header_and_type(header, type_str::String)
     append_type_str(_show_name_str(header), type_str)
 end
 
-struct IsStructType end 
-struct IsNotStructType end 
+abstract type AbstractTypeCategory end 
+struct TypeTypeCat <: AbstractTypeCategory end 
+struct StructTypeCat <: AbstractTypeCategory end 
+struct VectorTypeCat <: AbstractTypeCategory end 
+struct DictTypeCat <: AbstractTypeCategory end 
+struct SetTypeCat <: AbstractTypeCategory end 
+struct GenericTypeCat <: AbstractTypeCategory end 
+
+typecat_description(::TypeTypeCat) = "Type"
+typecat_description(::StructTypeCat) = "Struct"
+typecat_description(::VectorTypeCat) = "Vector"
+typecat_description(::DictTypeCat) = "Dict"
+typecat_description(::SetTypeCat) = "Set"
+typecat_description(::GenericTypeCat) = "generic value"
+
+function type_category(::Type{T}) where {T}
+    if T <: Type
+        return TypeTypeCat()
+    elseif T <: AbstractVector 
+        return VectorTypeCat()
+    elseif T <: AbstractDict
+        return DictTypeCat()
+    elseif T <: AbstractSet
+        return SetTypeCat()
+    elseif isstructtype(T)
+        return StructTypeCat()
+    else
+        return GenericTypeCat()
+    end
+end
 
 function show_differing_fieldnames(ctx::IOContext, expected_fields, results_fields; expected_name="expected", expected_type_str::String="", result_name="result", result_type_str::String="")
     has_colour = get(ctx, :color, false)::Bool
@@ -97,37 +125,32 @@ function show_diff(expected, result; io=stderr, compact::Bool=true, kwargs...)
     return show_diff(IOContext(io, :compact=>compact), expected, result; kwargs...)
 end
 
-function show_diff(ctx::IOContext, expected, result; expected_name="expected", result_name="result", kwargs...)
-    has_colour = get(ctx, :color, false)::Bool
-    expected_type = typeof(expected)
-    result_type = typeof(result)
-    expected_is_struct = isstructtype(expected_type) 
-    result_is_struct = isstructtype(result_type)
-    if expected_is_struct
-        if result_is_struct
-            return show_diff(IsStructType(), ctx, expected, result; expected_name=expected_name, result_name=result_name, kwargs...)
-        else
-            print(ctx, "Reason: ")
-            show_maybe_styled(ctx, "$expected_name::$expected_type is a struct, but $result_name::$result_type is not a struct"; has_colour=has_colour, is_matching=false)
-            println(ctx)
-            return nothing
-        end
-    else
-        if result_is_struct
-            print(ctx, "Reason: ")
-            show_maybe_styled(ctx, "$expected_name::$expected_type is not a struct, but $result_name::$result_type is a struct"; has_colour=has_colour, is_matching=false)
-            println(ctx)
-        else
-            return show_diff(IsNotStructType(), ctx, expected, result; expected_name=expected_name, result_name=result_name, kwargs...)
-        end
-    end
-end
-
 function show_diff_header(value, value_name, value_type_str::String; show_type_str::Bool=false)
     if show_type_str && isempty(value_type_str)
         value_type_str = string(typeof(value))
     end
     return header_and_type(value_name, value_type_str)
+end
+
+function show_diff_mismatched_type_cat(ctx::IOContext, expected_type_category, expected, expected_type, result_type_category, result, result_type; expected_name, result_name)
+    has_colour = get(ctx, :color, false)::Bool
+    expected_header = show_diff_header(expected, expected_name, string(expected_type); show_type_str=true)
+    result_header = show_diff_header(result, result_name, string(result_type); show_type_str=true)
+    println(ctx, "Reason: Mismatched type categories")
+    show_maybe_styled(ctx, "$expected_header is a $(typecat_description(expected_type_category)), but $result_header is a $(typecat_description(result_type_category))"; has_colour=has_colour, is_matching=false)
+    println(ctx)
+end
+
+function show_diff(ctx::IOContext, expected, result; expected_name="expected", result_name="result", kwargs...)
+    expected_type = typeof(expected)
+    result_type = typeof(result)
+    expected_typecat = type_category(expected_type)
+    result_typecat = type_category(result_type)
+    if expected_typecat == result_typecat
+        return show_diff(expected_typecat, ctx, expected, result; expected_name=expected_name, result_name=result_name, kwargs...)
+    else
+        return show_diff_mismatched_type_cat(ctx, expected_typecat, expected, expected_type, result_typecat, result, result_type; expected_name=expected_name, result_name=result_name)
+    end
 end
 
 function show_diff_generic(ctx::IOContext, expected, result; expected_name="expected", expected_type_str::String="", result_name="result", result_type_str::String="", show_type_str::Bool=false, justify_headers::Symbol=:left, kwargs...)
@@ -143,4 +166,4 @@ function show_diff_generic(ctx::IOContext, expected, result; expected_name="expe
     return nothing
 end
 
-show_diff(::IsNotStructType, ctx::IOContext, expected, result; expected_name="expected", result_name="result", kwargs...) = show_diff_generic(ctx::IOContext, expected, result; expected_name=expected_name, result_name=result_name, justify_headers=:none, kwargs...)
+show_diff(::AbstractTypeCategory, ctx::IOContext, expected, result; expected_name="expected", result_name="result", kwargs...) = show_diff_generic(ctx::IOContext, expected, result; expected_name=expected_name, result_name=result_name, justify_headers=:none, kwargs...)

@@ -89,7 +89,7 @@ module TestingUtilitiesDataFramesExt
         return pretty_table(io, df_to_show; (k => v for (k, v) in pairs(kwargs) if k ∈ pretty_table_kwarg_keys_text)..., highlighters, formatters)
     end
 
-    function TestingUtilities.show_diff(::TestingUtilities.IsStructType, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, kwargs...)
+    function TestingUtilities.show_diff(::TestingUtilities.StructTypeCat, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, kwargs...)
         has_colour = get(ctx, :color, false)
         expected_names = propertynames(expected)
         result_names = propertynames(result)

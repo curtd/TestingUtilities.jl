@@ -10,7 +10,7 @@ function differing_fields(expected, expected_fields, result, result_fields; use_
     return fields 
 end
 
-function show_diff(::IsStructType, ctx::IOContext, expected, result; expected_name="expected", result_name="result", use_isequals_equality::Bool=true, field_index::Vector{Symbol}=Symbol[], recurse::Bool=true, kwargs...)
+function show_diff(::StructTypeCat, ctx::IOContext, expected, result; expected_name="expected", result_name="result", use_isequals_equality::Bool=true, field_index::Vector{Symbol}=Symbol[], recurse::Bool=true, kwargs...)
     T_expected = typeof(expected)
     T_expected_str = string(T_expected)
     T_result = typeof(result)
