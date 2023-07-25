@@ -114,7 +114,7 @@ function show_differing_fieldnames(ctx::IOContext, expected_fields, results_fiel
         p(ctx, i)
         print(ctx, '(')
         for field in fields
-            show_maybe_styled(io, ":$field"; has_colour=has_colour, is_matching=field in matching)
+            show_maybe_styled(ctx, ":$field"; has_colour=has_colour, is_matching=field in matching)
         end
         println(ctx, ')')
     end
