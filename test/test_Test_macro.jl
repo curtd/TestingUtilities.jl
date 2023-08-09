@@ -312,6 +312,22 @@ end
             message = String(take!(io))
             @test message == "Test `a == c` failed:\na = 1\nc = 2\n"
 
+            x = (a=2, c=3)
+            @Test io=io x == (; a=a, c=c, d=1)
+            message = String(take!(io))
+            @test message == "Test `x == (; a = a, c = c, d = 1)` failed:\nx = (a = 2, c = 3)\n`(; a = a, c = c, d = 1)` = (a = 1, c = 2, d = 1)\nValues:\na = 1\nc = 2\n"
+
+            y = (2, 3)
+            @Test io=io y == (a, c)
+            message = String(take!(io))
+            @test message == "Test `y == (a, c)` failed:\ny = (2, 3)\n`(a, c)` = (1, 2)\nValues:\na = 1\nc = 2\n"
+
+            if VERSION ≥ v"1.7"
+                @Test io=io x == (; a, c)
+                message = String(take!(io))
+                @test message == "Test `x == (; a, c)` failed:\nx = (a = 2, c = 3)\n`(; a, c)` = (a = 1, c = 2)\nValues:\na = 1\nc = 2\n"
+            end
+
             x = ShowDiffChild1_1("abc", 2)
             ref_x = ShowDiffChild1_1("ab", 1)
             @Test io=io isequal(x, ref_x)
@@ -335,7 +351,8 @@ end
             message = String(take!(io))
             @test message == "Test `b[]` failed:\nValues:\nb[] = $(b[])\n"
         end
-        @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:4]) |> collect)
+        num_tests = 7 - (VERSION ≥ v"1.7" ? 0 : 1)
+        @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:num_tests]) |> collect)
 
         results = Test.@testset NoThrowTestSet "Comparison to string" begin 
             io = IOBuffer()
