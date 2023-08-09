@@ -75,6 +75,8 @@ end
 abstract type AbstractTypeCategory end 
 struct TypeTypeCat <: AbstractTypeCategory end 
 struct StructTypeCat <: AbstractTypeCategory end 
+struct TupleTypeCat <: AbstractTypeCategory end 
+struct NamedTupleTypeCat <: AbstractTypeCategory end
 struct VectorTypeCat <: AbstractTypeCategory end 
 struct DictTypeCat <: AbstractTypeCategory end 
 struct SetTypeCat <: AbstractTypeCategory end 
@@ -82,6 +84,8 @@ struct GenericTypeCat <: AbstractTypeCategory end
 
 typecat_description(::TypeTypeCat) = "Type"
 typecat_description(::StructTypeCat) = "Struct"
+typecat_description(::TupleTypeCat) = "Tuple"
+typecat_description(::NamedTupleTypeCat) = "NamedTuple"
 typecat_description(::VectorTypeCat) = "Vector"
 typecat_description(::DictTypeCat) = "Dict"
 typecat_description(::SetTypeCat) = "Set"
@@ -92,6 +96,10 @@ function type_category(::Type{T}) where {T}
         return TypeTypeCat()
     elseif T <: AbstractVector 
         return VectorTypeCat()
+    elseif T <: Tuple
+        return TupleTypeCat()
+    elseif T <: NamedTuple 
+        return NamedTupleTypeCat()
     elseif T <: AbstractDict
         return DictTypeCat()
     elseif T <: AbstractSet

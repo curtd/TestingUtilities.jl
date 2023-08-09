@@ -27,7 +27,14 @@ function is_atom(x)
             is_lit = @switch args[1] begin 
                 @case Expr(:parameters, kwargs...)
                     for kwarg in kwargs
-                        !is_atom(kwarg.args[2]) && return false
+                        @switch kwarg begin 
+                            @case ::Symbol 
+                                return false 
+                            @case Expr(:kw, lhs, rhs) || Expr(:(=), lhs, rhs)
+                                !is_atom(rhs) && return false
+                            @case _
+                                !is_atom(kwarg) && return false 
+                        end 
                     end
                     true
                 @case _
