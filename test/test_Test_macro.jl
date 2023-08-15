@@ -473,8 +473,78 @@ end
                 """
                 @test message == ref_message
 
+                # More differing columns than number of columns we're allowed to print -- only show differing values 
+                TestingUtilities.set_show_diff_df_opts(; max_num_rows=3, max_num_cols=3)
+                e = deepcopy(d)
+                e[1:2:end,:a1] .+= 1
+                e[1:3:end,:a2] .+= 1
+                e[1:4:end,:a4] .+= 1
+                e[1:4:end,:a8] .+= 1
+
+                @Test io=io d == e 
+                message = String(take!(io))
+                ref_message = """Test `d == e` failed:
+                Reason: Mismatched values
+                ┌───────────────────┬────────┬───────┬───────┬───────┬───┐
+                │           row_num │     df │    a1 │    a2 │    a4 │ … │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │ Int64 │ Int64 │   │
+                ├───────────────────┼────────┼───────┼───────┼───────┼───┤
+                │                 1 │      d │     1 │     2 │     4 │ ⋯ │
+                │                   │      e │     2 │     3 │     5 │   │
+                └───────────────────┴────────┴───────┴───────┴───────┴───┘
+                ┌───────────────────┬────────┬───────┐
+                │           row_num │     df │    a1 │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │
+                ├───────────────────┼────────┼───────┤
+                │                 3 │      d │     3 │
+                │                   │      e │     4 │
+                └───────────────────┴────────┴───────┘
+                ┌───────────────────┬────────┬───────┐
+                │           row_num │     df │    a2 │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │
+                ├───────────────────┼────────┼───────┤
+                │                 4 │      d │     5 │
+                │                   │      e │     6 │
+                └───────────────────┴────────┴───────┘
+                ⋮ ⋮ ⋮\n"""
+                @test message == ref_message
+
+                # Less differing columns than we're allowed to print, but the first max_num_cols of the dataframe are all in agreement -- only show differing values
+                e = deepcopy(d)
+                e[1:2:end,:a4] .+= 1
+                e[1:3:end,:a5] .+= 1
+                e[1:4:end,:a6] .+= 1
+                e[1:4:end,:a7] .+= 1
+
+                @Test io=io d == e 
+                message = String(take!(io))
+                ref_message = """Test `d == e` failed:
+                Reason: Mismatched values
+                ┌───────────────────┬────────┬───────┬───────┬───────┬───┐
+                │           row_num │     df │    a4 │    a5 │    a6 │ … │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │ Int64 │ Int64 │   │
+                ├───────────────────┼────────┼───────┼───────┼───────┼───┤
+                │                 1 │      d │     4 │     5 │     6 │ ⋯ │
+                │                   │      e │     5 │     6 │     7 │   │
+                └───────────────────┴────────┴───────┴───────┴───────┴───┘
+                ┌───────────────────┬────────┬───────┐
+                │           row_num │     df │    a4 │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │
+                ├───────────────────┼────────┼───────┤
+                │                 3 │      d │     6 │
+                │                   │      e │     7 │
+                └───────────────────┴────────┴───────┘
+                ┌───────────────────┬────────┬───────┐
+                │           row_num │     df │    a5 │
+                │ U{Nothing, Int64} │ Symbol │ Int64 │
+                ├───────────────────┼────────┼───────┤
+                │                 4 │      d │     8 │
+                │                   │      e │     9 │
+                └───────────────────┴────────┴───────┘
+                ⋮ ⋮ ⋮\n"""
+                @test message == ref_message
             end
-            @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:5]) |> collect)
+            @test test_results_match(results, Iterators.flatten([(Test.Fail, Test.Pass) for _ in 1:7]) |> collect)
         end
 
         results = Test.@testset NoThrowTestSet "Invalid Test" begin 

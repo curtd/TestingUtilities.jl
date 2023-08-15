@@ -159,7 +159,7 @@ function load_show_diff_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::In
     if max_num_cols ≤ 0
         max_num_cols = max(@load_preference("show_diff_df.max_num_cols", 10)::Int, 1)
     end
-    show_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
+    show_diff_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
     return nothing
 end
 
@@ -174,7 +174,7 @@ function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
     @set_preferences!("show_diff_df.max_num_rows" => max_num_rows)
     @set_preferences!("show_diff_df.max_num_cols" => max_num_cols)
 
-    load_show_df_max_rows_cols()
+    load_show_diff_df_max_rows_cols()
     return nothing
 end
 

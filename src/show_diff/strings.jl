@@ -3,19 +3,38 @@ function show_escape_newlines(io, str::AbstractString; has_colour::Bool=false, i
     return show_maybe_styled(io, replaced_str; has_colour, is_matching)
 end
 
+const no_prefix = SubString("")
+
 function common_prefix(a::AbstractString, b::AbstractString)
+    (isempty(a) || isempty(b)) && return no_prefix, a, b
     a_itr, b_itr = eachindex(a), eachindex(b)
     i, j = iterate(a_itr), iterate(b_itr)
-    common_prefix_length = 0
+    a_prefix_end = nothing
+    b_prefix_end = nothing
     while true 
         (i === nothing || j === nothing) && break 
-        a[i[1]] == b[j[1]] || break 
-        common_prefix_length += 1
-        i, j = iterate(a_itr, i[2]), iterate(b_itr, j[2])
+        a_index, a_state = i
+        b_index, b_state = j
+        a[a_index] == b[b_index] || break 
+        a_prefix_end = a_index
+        b_prefix_end = b_index
+        i, j = iterate(a_itr, a_state), iterate(b_itr, b_state)
     end
-    prefix = SubString(a, 1, common_prefix_length)
-    a_rest = !isnothing(i) ? (@view a[i[1]:end]) : nothing 
-    b_rest = !isnothing(j) ? (@view b[j[1]:end]) : nothing 
+    prefix = !isnothing(a_prefix_end) ? SubString(a, firstindex(a), a_prefix_end) : no_prefix
+    if isnothing(a_prefix_end) 
+        a_rest = SubString(a)
+    elseif a_prefix_end != lastindex(a)
+        a_rest = @view a[nextind(a, a_prefix_end):end]
+    else
+        a_rest = nothing
+    end
+    if isnothing(b_prefix_end) 
+        b_rest = SubString(b)
+    elseif b_prefix_end != lastindex(b)
+        b_rest = @view b[nextind(b, b_prefix_end):end]
+    else
+        b_rest = nothing
+    end
     return prefix, a_rest, b_rest
 end
 

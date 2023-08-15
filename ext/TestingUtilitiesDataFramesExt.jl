@@ -47,7 +47,7 @@ module TestingUtilitiesDataFramesExt
         df_to_show = df[row_indices, col_indices]
         if num_cols > max_num_of_columns
             rename!(df_to_show, (truncate_to_cols+1) => Symbol("…"))
-            df_to_show[!, Symbol("…")] = [TruncatedValue() for _ in 1:truncate_to_rows+1]
+            df_to_show[!, Symbol("…")] = [TruncatedValue() for _ in row_indices]
         end
 
         if haskey(kwargs, :formatters)
@@ -89,7 +89,7 @@ module TestingUtilitiesDataFramesExt
         return pretty_table(io, df_to_show; (k => v for (k, v) in pairs(kwargs) if k ∈ pretty_table_kwarg_keys_text)..., highlighters, formatters)
     end
 
-    function TestingUtilities.show_diff(::TestingUtilities.StructTypeCat, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, kwargs...)
+    function TestingUtilities.show_diff(::TestingUtilities.StructTypeCat, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, differing_cols_only::Bool=false, kwargs...)
         has_colour = get(ctx, :color, false)
         expected_names = propertynames(expected)
         result_names = propertynames(result)
@@ -101,22 +101,56 @@ module TestingUtilitiesDataFramesExt
             result_nrows = nrow(result)
             if expected_nrows == result_nrows 
                 max_num_of_rows, max_num_of_columns = max.(1, max_num_rows_cols)
-
+                max_num_of_columns_plus_headers = max_num_of_columns+2
                 differing_rows = Int[]
+                differing_cols = Set{Symbol}()
                 for (row_num,(row_expected, row_result)) in enumerate(zip(eachrow(expected), eachrow(result)))
                     if !isequal(row_expected, row_result)
                         push!(differing_rows, row_num)
+                        for col in expected_names 
+                            if !isequal(row_expected[col], row_result[col])
+                                push!(differing_cols, col)
+                            end
+                        end
                     end
-                    length(differing_rows) == max_num_of_rows && break 
+                    length(differing_rows) == max_num_of_rows+1 && break 
                 end
-                n_differing_rows = length(differing_rows)
-                difference_df = DataFrame()
-                difference_df[!,:row_num] = vec(vcat(differing_rows', repeat([nothing],1, n_differing_rows)))
-                difference_df[!,:df] = repeat([expected_name, result_name], length(differing_rows))
-                for col in expected_names 
-                    difference_df[!, col] = vec(vcat(reshape(expected[differing_rows, col], (1, n_differing_rows)), reshape(result[differing_rows, col], (1, n_differing_rows))))
+                if length(differing_rows) == max_num_of_rows+1
+                    pop!(differing_rows)
+                    has_more_differing_rows = true
+                else
+                    has_more_differing_rows = false 
                 end
 
+                # If there are more agreeing columns than number of columns we can display, or the first `max_num_of_columns` we can display are agreeing columns, only show differing columns
+                agreeing_columns = setdiff(expected_names, differing_cols)
+                if length(agreeing_columns) ≥ max_num_of_columns || length(Int[i for (i, col) in enumerate(expected_names) if col in agreeing_columns]) ≥ max_num_of_columns
+                    differing_cols_only = true
+                end
+                n_differing_rows = length(differing_rows)
+                difference_dfs = DataFrame[]
+                if differing_cols_only
+                    for row_num in differing_rows 
+                        difference_df = DataFrame()
+                        difference_df[!,:row_num] = [row_num, nothing]
+                        difference_df[!,:df] = [expected_name, result_name]
+                        for col in expected_names 
+                            if !isequal(expected[row_num, col], result[row_num, col])
+                                difference_df[!, col] = [expected[row_num, col], result[row_num, col]]
+                            end
+                        end
+                        push!(difference_dfs, difference_df)
+                    end
+                else
+                    difference_df = DataFrame()
+                    difference_df[!,:row_num] = vec(vcat(differing_rows', repeat([nothing],1, n_differing_rows)))
+                    difference_df[!,:df] = repeat([expected_name, result_name], length(differing_rows))
+                    for col in expected_names 
+                        difference_df[!, col] = vec(vcat(reshape(expected[differing_rows, col], (1, n_differing_rows)), reshape(result[differing_rows, col], (1, n_differing_rows))))
+                    end
+                    push!(difference_dfs, difference_df)
+                end
+               
                 matching_crayon = crayon_from_style(; matching=true)
                 differing_crayon = crayon_from_style(; matching=false)
                  
@@ -135,7 +169,12 @@ module TestingUtilitiesDataFramesExt
                 highlighters = Highlighter((data,i,j) -> j > 2, highlight_diff)
                 formatters = (v, i, j) -> j == 1 && isnothing(v) ? "" : v
                 println(ctx, "Reason: Mismatched values")
-                show_truncated_df(ctx, difference_df; highlighters, formatters, max_num_rows_cols=(max_num_of_rows, max_num_of_columns))
+                for df in difference_dfs
+                    show_truncated_df(ctx, df; highlighters, formatters, max_num_rows_cols=(max_num_of_rows, max_num_of_columns_plus_headers))
+                end
+                if length(difference_dfs) == n_differing_rows && has_more_differing_rows
+                    println(ctx, "⋮ ⋮ ⋮")
+                end
             else
                 println(ctx, "Reason: `nrow($expected_name) != nrow($result_name)`")
                 p = TestingUtilities.PrintAligned("`nrow($expected_name)`", "`nrow($result_name)`"; separator=" = ")
