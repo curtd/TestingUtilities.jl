@@ -32,11 +32,13 @@ parse_shorthand_duration(ex::Int) = :(Dates.Millisecond($ex))
 parse_shorthand_duration(ex) = nothing
 
 """
-    @test_eventually [io=stderr] [timeout=duration] [sleep=duration] test_expr
+    @test_eventually [io=stderr] [timeout=duration] [sleep=duration] [repeat=false] test_expr
 
 Evalutes `test_expr` in the context of the `Test` module (i.e., runs the equivalent to `@test \$test_expr`), and ensures that it passes within a given time frame.
 
 If `test_expr` does not return a value within the specified `timeout`, the test fails with a `TestTimedOutException`. This macro checks `sleep` amount of time for the test expression to return a value, until `timeout` is reached. 
+
+If `repeat == true` and the first invocation of `test_expr` returns `false`, repeats the call to `test_expr` until it returns `true` or it times out.
 
 ## Duration Types 
 If `key = value` is given for `key` = `sleep` or `key` = `timeout`, then
@@ -51,6 +53,7 @@ macro test_eventually(args...)
     io_expr = fetch_kwarg_expr(kwargs; key=:io, expected_type=[Symbol, Expr], default_value=:(stderr))
     timeout_expr = fetch_kwarg_expr(kwargs; key=:timeout, expected_type=[Expr, Int])
     sleep_period_expr = fetch_kwarg_expr(kwargs; key=:sleep, expected_type=[Expr, Int])
+    repeat = fetch_kwarg_expr(kwargs; key=:repeat, expected_type=[Bool], default_value=false)
 
     original_ex = args[end]
 
@@ -88,15 +91,24 @@ macro test_eventually(args...)
         local sleep_time = $sleep_period_expr
         local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(original_ex_str))
 
-        local test_result = fetch(timer; throw_error=false)
-        
-        if isnothing(test_result)
-            # Timed out 
-            TestingUtilities.print_testeventually_data!(results_printer, max_time, failed_test_data, test_input_data)
-            test_result = TestingUtilities.Test.Threw(TestingUtilities.TestTimedOutException(max_time, $(original_ex_str), [], $(source)))
-        elseif TestingUtilities.test_did_not_succeed(test_result)
-            TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
+        local test_result
+
+        while true 
+            test_result = fetch(timer; throw_error=false)
+            if isnothing(test_result)
+                # Timed out 
+                TestingUtilities.print_testeventually_data!(results_printer, max_time, failed_test_data, test_input_data)
+                test_result = TestingUtilities.Test.Threw(TestingUtilities.TestTimedOutException(max_time, $(original_ex_str)), [], $(source))
+            else
+                result = TestingUtilities.test_ran_result(test_result)
+                if result == false
+                    $(repeat ? :(continue) : nothing)
+                    TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
+                end
+            end
+            break
         end
+
         TestingUtilities.Test.do_test(test_result, $(QuoteNode(original_ex)))
     end)
 end

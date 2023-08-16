@@ -41,6 +41,10 @@ module TestTestingUtilities
         child::Union{ShowDiffChild1, ShowDiffChild2}
     end
 
+    struct BoolStruct 
+        data::Bool 
+    end
+
     include("test_util/_test_util.jl")
 
     include("test_settings.jl")

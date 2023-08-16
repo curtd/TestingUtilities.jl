@@ -49,9 +49,14 @@ function parse_tuple(expression)
     end
 end
 
-function test_did_not_succeed(test_result)
-    return !(test_result isa Test.Returned && test_result.value isa Bool && test_result.value == true)
+function test_ran_result(test_result)
+    if test_result isa Test.Returned && test_result.value isa Bool
+        return test_result.value
+    else
+        return nothing 
+    end
 end
+test_did_not_succeed(test_result) = !(test_ran_result(test_result) == true)
 
 function rm_macrocall_linenode!(expr::Expr)
     if Meta.isexpr(expr, :macrocall)

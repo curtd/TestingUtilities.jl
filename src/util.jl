@@ -37,6 +37,7 @@ end
 
 mutable struct TaskFinishedTimer{T}
     timer::Union{Nothing, Timer}
+    cb_func::Any
     cb_task::Union{Nothing, Task}
     channel::Channel{T}
     error_channel::Channel
@@ -62,19 +63,17 @@ function check_task_done!(t::TaskFinishedTimer)
     currently = Dates.now()
     t.cumul_time += (currently - last_awoken)
     t.last_awoken = currently
-    if istaskdone(t.cb_task) || is_timed_out(t)
+    if isready(t.channel) || istaskdone(t.cb_task) || is_timed_out(t)
         close(t.timer)
     end
     return nothing
 end
 
-"""
 
-"""
 function TaskFinishedTimer(max_time::Millisecond, sleep_time::Millisecond,  return_type::Type{T}, cb::Function, args...; timer_name::String="") where {T}
     ch = Channel{T}(1)
     error_ch = Channel(1)
-    run_cb = let ch=ch, error_ch=error_ch, cb=cb, args=args
+    cb_func = let ch=ch, error_ch=error_ch, cb=cb, args=args
         function ()
             try 
                 put!(ch, cb(args...))
@@ -84,8 +83,7 @@ function TaskFinishedTimer(max_time::Millisecond, sleep_time::Millisecond,  retu
             end
         end
     end
-    cb_task = Task(run_cb)
-    t = TaskFinishedTimer(nothing, cb_task, ch, error_ch, DateTime(0,1,1), Millisecond(0), sleep_time, max_time, timer_name)
+    t = TaskFinishedTimer(nothing, cb_func, nothing, ch, error_ch, DateTime(0,1,1), Millisecond(0), sleep_time, max_time, timer_name)
     return t
 end
 
@@ -95,13 +93,19 @@ TaskFinishedTimer(::Type{T}, cb::Function, args...; max_time::Dates.Period, slee
 
 TaskFinishedTimer(cb::Function, args...; kwargs...) = TaskFinishedTimer(Any, cb, args...; kwargs...)
 
+# At the end of this function, either the callback task has completed or the timer has expired
 function Base.wait(t::TaskFinishedTimer)
-    if !isnothing(t.cb_task) && !istaskstarted(t.cb_task)
+    if isnothing(t.cb_task) || (istaskdone(t.cb_task))
+        t.cb_task = Task(t.cb_func)
+    end
+    if !istaskstarted(t.cb_task)
         schedule(t.cb_task)
     end
-    if isnothing(t.timer)
+    if isnothing(t.timer) || (!isopen(t) && !is_timed_out(t))
         interval = Dates.value(t.sleep_time) / Dates.value(Millisecond(Second(1)))
-        t.cumul_time = Millisecond(0)
+        if isnothing(t.timer)
+            t.cumul_time = Millisecond(0)
+        end
         t.last_awoken = now()
         t.timer = Timer(0.0; interval=interval)
     end
@@ -115,8 +119,8 @@ end
 Base.isopen(t::TaskFinishedTimer) = isopen(t.timer)
 
 function Base.fetch(t::TaskFinishedTimer{T}; throw_error::Bool=true) where {T}
-    isready(t.channel) && take!(t.channel)::T
-    istaskfailed(t.cb_task) && fetch(t.cb_task)
+    isready(t.channel) && return take!(t.channel)::T
+    !isnothing(t.cb_task) && istaskfailed(t.cb_task) && fetch(t.cb_task)
     wait(t)
     if isready(t.channel)
         return take!(t.channel)::T
