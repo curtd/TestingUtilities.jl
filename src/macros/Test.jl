@@ -100,7 +100,7 @@ function generate_test_expr(original_ex, record_data_dict; escape::Bool=true)
             use_isequals_equality = call_func in (:isequal, :(Base.isequals))
         end
     
-        if call_func in (:&&, :||, :comparison, :if, :ref)
+        if call_func in (:&&, :||, :comparison, :if, :ref, :.)
             eval_test_expr = Expr(call_func)
         else
             eval_test_expr = Expr(:call, esc_f(call_func))

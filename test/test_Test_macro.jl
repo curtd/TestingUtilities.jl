@@ -581,6 +581,16 @@ end
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
 
+        results = Test.@testset NoThrowTestSet "Dot expr test" begin 
+            io = IOBuffer()
+            b = BoolStruct(false)
+            @Test io=io b.data
+            message = String(take!(io))
+            @test message == "Test `b.data` failed:\nValues:\nb = $BoolStruct(false)\n`b.data` = false\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass))
+
+
         results = Test.@testset NoThrowTestSet "Failing test with macro expression" begin 
             io = IOBuffer()
             f = t->t^2 
