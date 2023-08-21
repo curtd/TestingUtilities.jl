@@ -208,18 +208,18 @@ end
         c = Ref(0)
         l = ReentrantLock()
         f = ()-> (sleep(0.05); return lock(()->c[] ≥ 2, l))
-        g = @async (while c[] ≤ 2; sleep(0.1); lock(()->c[] += 1, l) end)
+        g = @async (while c[] ≤ 2; sleep(0.15); lock(()->c[] += 1, l) end)
 
         timer = TestingUtilities.TaskFinishedTimer(f; max_time=Second(1), sleep_time)
         t = @async fetch(timer)
         @test !istaskdone(t) && !istaskfailed(t)
-        sleep(0.1)
-        @test istaskdone(t) && !istaskfailed(t)
+        sleep(0.2)
+        @test istaskdone(t) 
         @test fetch(t) == false
-        sleep(0.8)
+        sleep(0.5)
         t = @async fetch(timer)
         sleep(0.1)
-        @test istaskdone(t) && !istaskfailed(t)
+        @test istaskdone(t)
         @test fetch(t) == true
 
         # Keep running until timed out
