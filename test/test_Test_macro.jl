@@ -77,14 +77,14 @@ end
             test_data = [
                 (expr = :(f()), result = (call_func = :f, args=[], kwargs=[])),
                 (expr = :(f(a)), result = (call_func = :f, args=[:a], kwargs=[])),
-                (expr = :(f(a, g(h))), result = (call_func = :f, args=[:a, :(g(h))], kwargs=[])),
-                (expr = :(f(a, g(h), k=8)), result = (call_func = :f, args=[:a, :(g(h))], kwargs=[:k => :8])),
-                (expr = :(f(a, g(h), k=8; kv1)), result = (call_func = :f, args=[:a, :(g(h))], kwargs=[:kv1 => :kv1, :k => :8])),
-                (expr = :(f(a, g(h), k=8; kv1, kv2=rhs())), result = (call_func = :f, args=[:a, :(g(h))], kwargs=[:kv1 => :kv1, :kv2 => :(rhs()), :k => :8])),
+                (expr = :(f(a, g(t))), result = (call_func = :f, args=[:a, :(g(t))], kwargs=[])),
+                (expr = :(f(a, g(t), k=8)), result = (call_func = :f, args=[:a, :(g(t))], kwargs=[:k => :8])),
+                (expr = :(f(a, g(t), k=8; kv1)), result = (call_func = :f, args=[:a, :(g(t))], kwargs=[:kv1 => :kv1, :k => :8])),
+                (expr = :(f(a, g(t), k=8; kv1, kv2=rhs())), result = (call_func = :f, args=[:a, :(g(t))], kwargs=[:kv1 => :kv1, :kv2 => :(rhs()), :k => :8])),
                 (expr = :((a,)), result = (call_func = :tuple, args=[:a], kwargs=[])),
                 (expr = :((a,b)), result = (call_func = :tuple, args=[:a,:b], kwargs=[])),
                 (expr = :((a,b,c=1)), result = (call_func = :tuple, args=[:a,:b], kwargs=[:c => 1])),
-                (expr = :((a,b,c=1; d, e=f(h))), result = (call_func = :tuple, args=[:a,:b], kwargs=[:d => :d, :e => :(f(h)), :c => 1])),
+                (expr = :((a,b,c=1; d, e=f(t))), result = (call_func = :tuple, args=[:a,:b], kwargs=[:d => :d, :e => :(f(t)), :c => 1])),
                 (expr = :([a]), result = (call_func = :(Base.vect), args=[:a], kwargs=[])),
                 (expr = :([a,b]), result = (call_func = :(Base.vect), args=[:a,:b], kwargs=[])),
                 (expr = :([a;b]), result = (call_func = :vcat, args=[:a,:b], kwargs=[])),
@@ -152,13 +152,13 @@ end
             
             # Splatted arg
             graph = OrderedDict{Any,Any}()
-            expr = :([h(a)...])
+            expr = :([t(a)...])
             graph[TEST_EXPR_KEY] = expr
-            @test TestingUtilities._computational_graph!(graph, expr) == [:(h(a))]
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(Base.vect(arg1...)), :arg1 => :(h(a)))
+            @test TestingUtilities._computational_graph!(graph, expr) == [:(t(a))]
+            @test graph == OrderedDict(TEST_EXPR_KEY => :(Base.vect(arg1...)), :arg1 => :(t(a)))
             
-            @test TestingUtilities._computational_graph!(graph, :(h(a))) == [:a]
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(Base.vect(arg1...)), :arg1 => :(h(arg2)), :arg2 => :a)
+            @test TestingUtilities._computational_graph!(graph, :(t(a))) == [:a]
+            @test graph == OrderedDict(TEST_EXPR_KEY => :(Base.vect(arg1...)), :arg1 => :(t(arg2)), :arg2 => :a)
             
             # args + keyword arguments with literal value 
             graph = OrderedDict{Any,Any}()
@@ -176,12 +176,12 @@ end
 
             # Ref expressions 
             graph = OrderedDict{Any,Any}()
-            expr = :(a[b,g(h)])
+            expr = :(a[b,g(t)])
             graph[TEST_EXPR_KEY] = expr
-            @test TestingUtilities._computational_graph!(graph, expr) == [:a, :b, :(g(h))]
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2, arg3]), :arg1 => :a, :arg2 => :b, :arg3 => :(g(h)))
-            @test TestingUtilities._computational_graph!(graph, :(g(h))) == [:h]
-            @test graph == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2, arg3]), :arg1 => :a, :arg2 => :b, :arg3 => :(g(arg4)), :arg4 => :h)
+            @test TestingUtilities._computational_graph!(graph, expr) == [:a, :b, :(g(t))]
+            @test graph == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2, arg3]), :arg1 => :a, :arg2 => :b, :arg3 => :(g(t)))
+            @test TestingUtilities._computational_graph!(graph, :(g(t))) == [:t]
+            @test graph == OrderedDict(TEST_EXPR_KEY => :(arg1[arg2, arg3]), :arg1 => :a, :arg2 => :b, :arg3 => :(g(arg4)), :arg4 => :t)
             
             # Ref expression with reserved keywords 
             graph = OrderedDict{Any,Any}()
@@ -275,9 +275,9 @@ end
             result = TestingUtilities.computational_graph(expr)
             @test result == OrderedDict(TEST_EXPR_KEY => :(all(ai > 2 for ai in arg1 if mod(ai,2)== 0)), :arg1 => :a)
 
-            expr = :(all(ai > 2 for ai in [a,h(b),c] if mod(ai,2) == 0))
+            expr = :(all(ai > 2 for ai in [a,t(b),c] if mod(ai,2) == 0))
             result = TestingUtilities.computational_graph(expr)
-            @test result == OrderedDict(TEST_EXPR_KEY => :(all(ai > 2 for ai in arg1 if mod(ai,2)== 0)), :arg1 => :(Base.vect(arg2, arg3, arg4)), :arg2 => :a, :arg3 => :(h(arg5)), :arg4 => :c, :arg5 => :b)
+            @test result == OrderedDict(TEST_EXPR_KEY => :(all(ai > 2 for ai in arg1 if mod(ai,2)== 0)), :arg1 => :(Base.vect(arg2, arg3, arg4)), :arg2 => :a, :arg3 => :(t(arg5)), :arg4 => :c, :arg5 => :b)
 
             expr = :(f(Dict{Int,String}))
             result = TestingUtilities.computational_graph(expr)
@@ -580,6 +580,16 @@ end
             @test message == "Test `g(:x) == :(f(a, b))` failed:\nValues:\n`g(:x)` = :x\n"
         end
         @test test_results_match(results, (Test.Fail, Test.Pass))
+
+        results = Test.@testset NoThrowTestSet "Dot expr test" begin 
+            io = IOBuffer()
+            b = BoolStruct(false)
+            @Test io=io b.data
+            message = String(take!(io))
+            @test message == "Test `b.data` failed:\nValues:\nb = $BoolStruct(false)\n`b.data` = false\n"
+        end
+        @test test_results_match(results, (Test.Fail, Test.Pass))
+
 
         results = Test.@testset NoThrowTestSet "Failing test with macro expression" begin 
             io = IOBuffer()

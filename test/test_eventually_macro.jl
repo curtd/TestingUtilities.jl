@@ -6,6 +6,7 @@
             (; input=:(2s), output=:(Dates.Second(2))),
             (; input=:(1m), output=:(Dates.Minute(1))),
             (; input=:(1h), output=:(Dates.Hour(1))),
+            (; input=:(3h), output=:(Dates.Hour(3))),
             (; input=:(1d), output=:(Dates.Day(1))),
             (; input=:(1w), output=:(Dates.Week(1))),
             (; input=:(1month), output=:(Dates.Month(1))),
@@ -62,6 +63,26 @@
         message = String(take!(io))
 
         @test message == "Test `f(done)` failed:\nValues:\ndone[] = $(done[])\n"
+
+        # Default behaviour: try to see if test passes the first time -- if function returns within time limit, returned value is test result value
+        c = Ref(0)
+        l = ReentrantLock()
+        f = (count)-> (sleep(0.1); return lock(()->count[] ≥ 2, l))
+        g = @async (while c[] ≤ 2; sleep(0.2); lock(()->c[] += 1, l) end)
+        @test_eventually io=io sleep=10ms timeout=500ms f(c)
+        message = String(take!(io))
+        @test message == "Test `f(c)` failed:\nValues:\nc[] = 0\n"
+        
+        # Test eventually succeeds 
+        c = Ref(0)
+        g = @async (while c[] ≤ 2; sleep(0.2); lock(()->c[] += 1, l) end)
+        @test_eventually io=io sleep=10ms timeout=500ms repeat=true f(c)
+
+        # Test runs but never succeeds
+        d = Ref(0)
+        @test_eventually io=io sleep=10ms timeout=100ms repeat=true f(d)
+        message = String(take!(io))
+        @test message == "Test `f(d)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\nd[] = $(d[])\n"
     end
-    @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Pass, Test.Fail, Test.Pass))
+    @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Pass, Test.Error, Test.Pass))
 end

@@ -204,5 +204,38 @@ end
         @test !istaskdone(f) && !istaskfailed(f)
         sleep(0.5)
         @test_throws TaskFailedException fetch(f)
+
+        c = Ref(0)
+        l = ReentrantLock()
+        f = ()-> (sleep(0.05); return lock(()->c[] ≥ 2, l))
+        g = @async (while c[] ≤ 2; sleep(0.15); lock(()->c[] += 1, l) end)
+
+        timer = TestingUtilities.TaskFinishedTimer(f; max_time=Second(1), sleep_time)
+        t = @async fetch(timer)
+        @test !istaskdone(t) && !istaskfailed(t)
+        sleep(0.2)
+        @test istaskdone(t) 
+        @test fetch(t) == false
+        sleep(0.5)
+        t = @async fetch(timer)
+        sleep(0.1)
+        @test istaskdone(t)
+        @test fetch(t) == true
+
+        # Keep running until timed out
+        c = Ref(0)
+        f = ()-> (sleep(0.01); return lock(()->c[] ≥ 2, l))
+
+        timer = TestingUtilities.TaskFinishedTimer(f; max_time=Millisecond(100), sleep_time=Millisecond(20))
+        for i in 1:100
+            t = fetch(timer; throw_error=false)
+            if isnothing(t)
+                @test TestingUtilities.is_timed_out(timer)
+                break
+            else
+                @test t == false
+            end
+            i == 100 && error("Ran for 100 iterations without timing out")
+        end
     end
 end
