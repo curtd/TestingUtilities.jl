@@ -207,6 +207,18 @@
         """
         @test message == ref_message
 
+        # Don't recurse into Date/Time/Period types
+        for (expected, result) in [(Date(2023, 1, 1), Date(2023, 1, 2)), (DateTime(2023, 1, 1), DateTime(2023, 1, 2)), (Time(9, 30), Time(9, 31)), (Second(1), Second(2))]
+            io = IOBuffer()
+            TestingUtilities.show_diff(expected, result; io=io)
+            message = String(take!(io))
+            T = typeof(expected)
+            ref_message = """
+            expected::$(T) = $(repr(expected))
+              result::$(T) = $(repr(result))
+            """
+            @test message == ref_message
+        end
     end
     @testset "Generic values" begin 
         expected_1_1 = ShowDiffChild1_1("abc", 1)

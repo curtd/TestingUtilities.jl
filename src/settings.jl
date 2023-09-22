@@ -88,7 +88,7 @@ function load_show_diff_styles(;
     if !isempty(differing_style_opts)
         copy!(show_diff_differing_style, differing_style_opts)
     end
-    return nothing
+    return matching_style_opts, differing_style_opts
 end
 
 """
@@ -108,8 +108,7 @@ function set_show_diff_styles(; matching::Union{Pair, Vector{<:Pair}}=show_diff_
     @set_preferences!("show_diff_matching_style" => pref_to_string(matching))
     @set_preferences!("show_diff_differing_style" => pref_to_string(differing))
 
-    load_show_diff_styles()
-    return nothing
+    return load_show_diff_styles()
 end
 
 reset_show_diff_styles() = set_show_diff_styles(; matching=_show_diff_matching_style_default(), differing=_show_diff_differing_style_default())
@@ -121,28 +120,41 @@ const show_df_max_nrows_ncols = Ref((_show_df_max_nrows_default(), _show_df_max_
 
 function load_show_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
     if max_num_rows ≤ 0
-        max_num_rows = max(@load_preference("show_df.max_num_rows", _show_df_max_nrows_default())::Int, 1)
+        max_num_rows = @load_preference("show_df.max_num_rows", _show_df_max_nrows_default())::Int
+        if max_num_rows ≤ 0
+            max_num_rows = _show_df_max_nrows_default()
+        end
     end
     if max_num_cols ≤ 0
-        max_num_cols = max(@load_preference("show_df.max_num_cols", _show_df_max_ncols_default())::Int, 1)
+        max_num_cols = @load_preference("show_df.max_num_cols", _show_df_max_ncols_default())::Int
+        if max_num_cols ≤ 0
+            max_num_cols = _show_df_max_ncols_default()
+        end
     end
     show_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
-    return nothing
+    return show_df_max_nrows_ncols[]
 end
 
 """
-    set_show_df_opts(; [max_num_rows::Int], [max_num_cols::Int])
+    set_show_df_opts(; [max_num_rows::Int=0], [max_num_cols::Int=0], [save_preference::Bool=true])
 
 Sets the local maximum # of rows + columns to show when printing `DataFrame` values. 
 
-If not provided or if negative values are provided, will be set to `max_num_of_rows = 5` and `max_num_cols = 10`, respectively
-"""
-function set_show_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
-    @set_preferences!("show_df.max_num_rows" => max_num_rows)
-    @set_preferences!("show_df.max_num_cols" => max_num_cols)
+If non-positive values for `max_num_rows` or `max_num_cols` are provided, these will be set to `max_num_of_rows = 5` and `max_num_cols = 10`, respectively.
 
-    load_show_df_max_rows_cols()
-    return nothing
+If `save_preference == true`, will save this local preference with keys `show_df.max_num_rows`, `show_df.max_num_cols`.
+"""
+function set_show_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0, save_preference::Bool=true)
+    if save_preference && max_num_rows > 0
+        @set_preferences!("show_df.max_num_rows" => max_num_rows)
+        max_num_rows = 0
+    end
+    if save_preference && max_num_cols > 0
+        @set_preferences!("show_df.max_num_cols" => max_num_cols)
+        max_num_cols = 0
+    end
+
+    return load_show_df_max_rows_cols(; max_num_rows, max_num_cols)
 end
 
 reset_show_df_opts() = set_show_df_opts(; max_num_rows=_show_df_max_nrows_default(), max_num_cols=_show_df_max_ncols_default())
@@ -154,28 +166,73 @@ const show_diff_df_max_nrows_ncols = Ref((_show_diff_df_max_nrows_default(), _sh
 
 function load_show_diff_df_max_rows_cols(; max_num_rows::Int=0, max_num_cols::Int=0)
     if max_num_rows ≤ 0
-        max_num_rows = max(@load_preference("show_diff_df.max_num_rows", 10)::Int, 1)
+        max_num_rows = @load_preference("show_diff_df.max_num_rows", 10)::Int
+        if max_num_rows ≤ 0
+            max_num_rows = _show_diff_df_max_nrows_default()
+        end
     end
     if max_num_cols ≤ 0
-        max_num_cols = max(@load_preference("show_diff_df.max_num_cols", 10)::Int, 1)
+        max_num_cols = @load_preference("show_diff_df.max_num_cols", 10)::Int
+        if max_num_cols ≤ 0
+            max_num_cols = _show_diff_df_max_ncols_default()
+        end
     end
     show_diff_df_max_nrows_ncols[] = (max_num_rows, max_num_cols)
-    return nothing
+    return show_diff_df_max_nrows_ncols[]
 end
 
 """
-    set_show_diff_df_opts(; [max_num_rows::Int], [max_num_cols::Int])
+    set_show_diff_df_opts(; [max_num_rows::Int = 0], [max_num_cols::Int = 0], [save_preference::Bool = true])
 
 Sets the local maximum # of rows + columns to show when printing differences of `DataFrame` values. 
 
-If not provided or if negative values are provided, will be set to `max_num_of_rows = 10` and `max_num_cols = 10`, respectively
-"""
-function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0)
-    @set_preferences!("show_diff_df.max_num_rows" => max_num_rows)
-    @set_preferences!("show_diff_df.max_num_cols" => max_num_cols)
+If either `max_num_rows` or `max_num_cols` are non-positive, they will be set to `max_num_rows = 10` and `max_num_cols = 10`, respectively.
 
-    load_show_diff_df_max_rows_cols()
-    return nothing
+If `save_preference == true`, will save this local preference with keys `show_diff_df.max_num_rows`, `show_diff_df.max_num_cols`.
+"""
+function set_show_diff_df_opts(; max_num_rows::Int=0, max_num_cols::Int=0, save_preference::Bool=true)
+    if save_preference && max_num_rows > 0
+        @set_preferences!("show_diff_df.max_num_rows" => max_num_rows)
+        max_num_rows = 0 
+    end
+    if save_preference && max_num_cols > 0
+        @set_preferences!("show_diff_df.max_num_cols" => max_num_cols)
+        max_num_cols = 0
+    end
+
+    return load_show_diff_df_max_rows_cols(; max_num_rows, max_num_cols)
 end
 
 reset_show_diff_df_opts() = set_show_df_opts(; max_num_rows=_show_diff_df_max_nrows_default(), max_num_cols=_show_diff_df_max_ncols_default())
+
+_default_max_print_length() = 300
+
+const max_length_to_print = Ref(_default_max_print_length())
+
+function load_max_print_length(; max_print_length::Int=0)
+    if max_print_length ≤ 0
+        max_print_length = @load_preference("max_print_length", _default_max_print_length())::Int
+        if max_print_length ≤ 0
+            max_print_length = _default_max_print_length()
+        end
+    end
+    max_length_to_print[] = max_print_length
+    return max_length_to_print[]
+end
+
+"""
+    set_max_print_length(; [max_print_length::Int=0], [save_preference::Bool=true])
+
+Sets the local maximum # characters to print for each displayed value in, e.g., a failing test
+
+If `max_print_length` is not provided or if non-positive values are provided, will be set to `max_print_length = 300`
+
+If `save_preference == true`, will save this local preference with key `max_print_length`
+"""
+function set_max_print_length(; max_print_length::Int=0, save_preference::Bool=true)
+    if save_preference && max_print_length > 0
+        @set_preferences!("max_print_length" => max_print_length)
+        max_print_length = 0
+    end
+    return load_max_print_length(; max_print_length)
+end

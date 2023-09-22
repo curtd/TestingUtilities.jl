@@ -55,7 +55,7 @@ Base.eachindex(p::PrintAligned) = eachindex(p.header_strs)
 should_ignore_struct_type((@nospecialize x)) = false 
 should_print_differing_fields_header((@nospecialize x)) = true
 
-for T in (String, AbstractDict, AbstractVector, AbstractSet)
+for T in (String, AbstractDict, AbstractVector, AbstractSet, Dates.TimeType, Dates.AbstractDateTime, Dates.Period)
     @eval should_ignore_struct_type(::Type{<:$T}) = true
     @eval should_print_differing_fields_header(::Type{<:$T}) = false
 end
