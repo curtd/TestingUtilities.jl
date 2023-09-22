@@ -34,4 +34,21 @@
     @test TestingUtilities.show_diff_matching_style == [:color => :green, :underline => true]
     @test TestingUtilities.show_diff_differing_style == [:color => :red, :underline => true]
 
+    io = IOBuffer()
+    value = collect(1:10)
+    message_prefix = "a = "
+    original_message = "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n"
+    no_whitespace_length = length(original_message)-1
+    try 
+        for max_print_length in 1:no_whitespace_length+1
+            TestingUtilities.set_max_print_length(; max_print_length, save_preference=false)
+            TestingUtilities.show_value(:a, value; io)
+            message = String(take!(io))
+            ref_message = message_prefix *( max_print_length ≥ no_whitespace_length ? original_message : original_message[1:max_print_length]*"...\n")
+            @test message == ref_message
+        end
+        
+    finally 
+        TestingUtilities.set_max_print_length()
+    end
 end

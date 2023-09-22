@@ -26,6 +26,7 @@ makedocs(;
         "Settings" => "settings.md",
         "API" => "api.md"
     ],
+    warnonly=[:missing_docs]
 )
 
 deploydocs(;

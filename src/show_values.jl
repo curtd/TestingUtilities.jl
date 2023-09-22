@@ -26,8 +26,13 @@ function show_value(ctx::IOContext, value::Ref; kwargs...)
     return result
 end
 
-function show_value(ctx::IOContext, value; kwargs...)
-    println(ctx, repr(value))
+function show_value(ctx::IOContext, value; max_print_length::Int=max_length_to_print[], kwargs...)
+    s = repr(value; context = :limit => false)
+    no_whitespace_length = findprev(!isspace, s, length(s))
+    if !isnothing(no_whitespace_length) && (no_whitespace_length > max_print_length)
+        s = s[1:max_print_length]*"..."*s[no_whitespace_length+1:end]
+    end
+    println(ctx, s)
     flush(ctx)
     return nothing
 end
