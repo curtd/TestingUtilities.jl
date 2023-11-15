@@ -169,4 +169,23 @@ append_char(x, c; n::Int) = x * repeat(c, n)
 
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Fail, Test.Pass, Test.Pass))
 
+    results = Test.@testset NoThrowTestSet "Test data - generator expression" begin 
+        io = IOBuffer()
+        @test_cases io=io begin 
+            a | b | output 
+            0 | 1 | 2
+            (a | b | b^2 for a in 1:1, b in 0:1)
+            ((a, b, b^2) for a in 1:1, b in 0:1)
+            begin 
+                d = a
+                @test b^2 == d
+            end
+        end
+        message = String(take!(io))
+        ref_message = """Test `b ^ 2 == d` failed:\nValues:\n------\n`b ^ 2` = 1\nd = 0\na = 0\nb = 1\noutput = 2\n------\n`b ^ 2` = 0\nd = 1\na = 1\nb = 0\noutput = 0\n------\n`b ^ 2` = 0\nd = 1\na = 1\nb = 0\noutput = 0\n"""
+        @test message == ref_message
+    end
+
+    @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Pass))
+
 end

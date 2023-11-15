@@ -18,8 +18,8 @@ PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 TestingUtilitiesDataFramesExt = ["DataFrames", "PrettyTables"]
 
 [compat]
-Dates = "1.6"
 DataFrames = "1"
+Dates = "1.6"
 MLStyle = "0.4"
 OrderedCollections = "1.6"
 Preferences = "1"
