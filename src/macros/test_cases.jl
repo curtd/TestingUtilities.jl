@@ -69,7 +69,7 @@ struct TestExpr
 end
 
 Base.@kwdef mutable struct EvaluateTestCasesExpr 
-    const input_exprs::Vector{Any} = Any[]
+    input_exprs::Vector{Any} = Any[]
     num_test_exprs::Int = 0
 end
 Base.length(e::EvaluateTestCasesExpr) = length(e.input_exprs)
