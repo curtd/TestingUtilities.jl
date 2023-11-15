@@ -148,4 +148,25 @@ append_char(x, c; n::Int) = x * repeat(c, n)
         @test message == ref_message
     end
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass))
+
+    results = Test.@testset NoThrowTestSet "BlockExpr tests" begin 
+        io = IOBuffer()
+        @test_cases io=io begin 
+            a | b | output 
+            0 | 1 | 2
+            1 | 1 | 3
+            begin 
+                c = a^2 
+                @test b + c == output
+                d = c
+                @test b^2 == d
+            end
+        end
+        message = String(take!(io))
+        ref_message = """Test `b + c == output` failed:\nValues:\n------\n`b + c` = 1\noutput = 2\na = 0\nb = 1\n------\n`b + c` = 2\noutput = 3\na = 1\nb = 1\nTest `b ^ 2 == d` failed:\nValues:\n------\n`b ^ 2` = 1\nd = 0\na = 0\nb = 1\noutput = 2\n"""
+        @test message == ref_message
+    end
+
+    @test test_results_match(results, (Test.Fail, Test.Fail, Test.Fail, Test.Pass, Test.Pass))
+
 end
