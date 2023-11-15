@@ -40,7 +40,7 @@ function parse_tuple(expression)
                 @match arg begin 
                     :($K => $V) => push!(output, V)
                     :($K = $V) => push!(output, V)
-                    _ => error("Could not parse tuple $expression")
+                    _ => push!(output, arg)
                 end
             end
             return output
@@ -62,6 +62,22 @@ function rm_macrocall_linenode!(expr::Expr)
     if Meta.isexpr(expr, :macrocall)
         expr.args[2] = nothing 
     end
+end
+
+struct TestDataGeneratorExpr
+    per_var_data::Vector{Any}
+    generator_exprs::Vector{Any}
+end
+Base.length(g::TestDataGeneratorExpr) = length(g.per_var_data)
+function TestDataGeneratorExpr(expr)
+    data_expr = expr.args[1]
+    if Meta.isexpr(data_expr, :tuple)
+        per_var_data = parse_tuple(data_expr)
+    else
+        per_var_data = parse_table(data_expr; is_header=false)
+    end
+    generator_exprs = expr.args[2:end]
+    return TestDataGeneratorExpr(per_var_data, generator_exprs)
 end
 
 struct TestExpr 
@@ -115,6 +131,8 @@ function parse_test_cases(body_args; headers)
             
             if Meta.isexpr(expr, :tuple)
                 test_data_expr = parse_tuple(expr)
+            elseif Meta.isexpr(expr, :generator)
+                test_data_expr = TestDataGeneratorExpr(expr)
             else
                 test_data_expr = parse_table(expr; is_header=false)
             end
@@ -193,6 +211,7 @@ end
 
 Create a set of test data and, for each test data point, evaluates one or more test expressions on them. The values in each test case that cause the test to fail or for an exception to be thrown will be written to `io`. 
 
+## Test Case Expressions
 `[test cases]` must be a series of expressions of the form
 
 ```julia
@@ -217,6 +236,12 @@ Note: The `variableᵢ` can involve expressions that refer to `variableⱼ` for 
     1  | x^2 | y-x
 ```
 
+`[test cases]` may also be a generator expression of the form 
+```julia
+(value₁ | value₂ | ... | valueₙ for [valueᵢ₁ in Vᵢ₁, ..., valueᵢⱼ in Vᵢⱼ])
+```
+
+## Test Expressions
 `[test expressions]` must be a series of one or more test evaluation expressions 
 
 e.g., 
@@ -271,10 +296,12 @@ macro test_cases(args...)
         end
     end
 
-    test_data_values_expr = Expr(:vcat)
+    test_data_tuple_expr = Expr(:tuple)
     for test_case_values in all_test_case_values
+        vals = test_case_values isa TestDataGeneratorExpr ? test_case_values.per_var_data : test_case_values
+
         output_expr = Expr(:block)
-        for (header, test_case) in zip(normalized_headers, test_case_values) 
+        for (header, test_case) in zip(normalized_headers, vals) 
             name = header.name 
             replace_expr = header.replace_expr
             if !isnothing(replace_expr)
@@ -291,9 +318,14 @@ macro test_cases(args...)
             end
         end
         push!(output_expr.args, Expr(:tuple, Expr(:parameters, all_header_names...)))
-        push!(test_data_values_expr.args, output_expr)
-    end
 
+        if test_case_values isa TestDataGeneratorExpr
+            push!(test_data_tuple_expr.args, Expr(:generator, output_expr, test_case_values.generator_exprs...))
+        else
+            push!(test_data_tuple_expr.args, Expr(:tuple, output_expr))
+        end
+    end
+    test_data_values_expr = :($Base.Iterators.flatten($test_data_tuple_expr))
     run_tests_expr, show_all_test_data_expr = test_case_exprs(evaluate_test_exprs; source=QuoteNode(__source__), all_header_names)
     
     out_expr = quote 
