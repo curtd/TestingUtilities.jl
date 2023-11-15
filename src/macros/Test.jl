@@ -153,19 +153,19 @@ function test_expr_and_init_values(original_ex, failed_test_data_name::Symbol, r
             push!(set_failed_test_data_args, :($(QuoteNode(k)) => $(esc(k))))
         end
     end
-    initial_values_expr = :(TestingUtilities.OrderedDict{Any,Any}( $( set_failed_test_data_args... )))
+    initial_values_expr = :($TestingUtilities.OrderedDict{Any,Any}( $( set_failed_test_data_args... )))
     return initial_values_expr, test_expr, use_isequals_equality
 end
 
 function test_show_values_expr(results_printer_name::Symbol, failed_test_data_sym::Symbol, test_input_data_sym::Symbol; should_set_failed_values)
 
     show_values_func_expr = Base.remove_linenums!(quote 
-        let results_printer=$results_printer_name, failed_test_data=$failed_test_data_sym, test_input_data=$test_input_data_sym, TestingUtilities=$(@__MODULE__) 
+        let results_printer=$results_printer_name, failed_test_data=$failed_test_data_sym, test_input_data=$test_input_data_sym
             function()
-                if !$has_printed(results_printer)
-                    $print_Test_data!(results_printer, failed_test_data, test_input_data)
+                if !$TestingUtilities.has_printed(results_printer)
+                    $TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
                 
-                    $set_failed_values_in_main($test_input_data_sym, $(should_set_failed_values))
+                    $TestingUtilities.set_failed_values_in_main($test_input_data_sym, $(should_set_failed_values))
                 end
             end
         end
@@ -180,17 +180,16 @@ function Test_expr(original_ex; io_expr, should_set_failed_values, _sourceinfo)
     show_test_data_expr = Base.remove_linenums!(quote 
         let results_printer=results_printer, failed_test_data=failed_test_data, test_input_data=test_input_data
             function()
-                if !$has_printed(results_printer)
-                    $print_Test_data!(results_printer, failed_test_data, test_input_data)
+                if !$TestingUtilities.has_printed(results_printer)
+                    $TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
                 
-                    $set_failed_values_in_main(test_input_data, $(should_set_failed_values))
+                    $TestingUtilities.set_failed_values_in_main(test_input_data, $(should_set_failed_values))
                 end
             end
         end
     end)
 
     output = Base.remove_linenums!(quote 
-        local TestingUtilities = $(@__MODULE__)
         local io = $(esc(io_expr))
         local results_printer = $TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)
