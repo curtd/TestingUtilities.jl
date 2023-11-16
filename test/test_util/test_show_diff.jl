@@ -231,4 +231,50 @@
         message = String(take!(io))
         @test message == "expected = $Int\nresult = $String\n"
     end
+    @testset "Vectors" begin 
+        a = [1, 2, 3]
+        b = [1, 2, 4, 5]
+        io = IOBuffer()
+        TestingUtilities.show_diff(a, b; io=io)
+        message = String(take!(io))
+        ref_message = """
+        Reason: `eachindex(expected) != eachindex(result)`
+        `eachindex(expected) ⧵ eachindex(result)` = Int64[]
+        `eachindex(result) ⧵ eachindex(expected)` = [4]
+        """
+        @test message == ref_message
+
+        a = [1, 2, 3, 4]
+        b = [1, 2, 4, 5]
+        io = IOBuffer()
+        TestingUtilities.show_diff(a, b; io=io)
+        message = String(take!(io))
+        ref_message = """
+         index | expected |  result  
+           3   |     3    |     4    
+           4   |     4    |     5    
+        """
+        @test message == ref_message
+
+        a = 1:100
+        b = 2:101
+        io = IOBuffer()
+        TestingUtilities.show_diff(a, b; io=io)
+        message = String(take!(io))
+        ref_message = """
+         index | expected |  result  
+           1   |     1    |     2    
+           2   |     2    |     3    
+           3   |     3    |     4    
+           4   |     4    |     5    
+           5   |     5    |     6    
+           ⋮   |     ⋮    |     ⋮    
+           96  |    96    |    97    
+           97  |    97    |    98    
+           98  |    98    |    99    
+           99  |    99    |    100   
+          100  |    100   |    101   
+        """
+        @test message == ref_message
+    end
 end

@@ -1,4 +1,22 @@
-function show_maybe_styled(io, val; has_colour::Bool=false, is_matching::Bool)
+function cpad(s, width::Int, p::AbstractChar=' ')
+    if s isa AbstractString 
+        t = s 
+    else
+        t = repr(s)
+    end
+    tw = textwidth(t)
+    if tw < width 
+        l = ceil(Int, (width-tw)/2)
+        r = floor(Int, (width-tw)/2)
+        return p^l * t * p^r
+    elseif tw > width
+        return t[1:width-3]*"..."
+    else
+        return t 
+    end
+end
+
+function _show_maybe_styled(io, val; has_colour::Bool=false, is_matching::Bool)
     if has_colour 
         if is_matching
             style = NamedTuple(show_diff_matching_style)
@@ -10,6 +28,36 @@ function show_maybe_styled(io, val; has_colour::Bool=false, is_matching::Bool)
         print(io, val)
     end
     return nothing
+end
+
+show_maybe_styled(io, val; has_colour::Bool=false, is_matching::Bool) = _show_maybe_styled(io, val; has_colour, is_matching)
+
+function show_maybe_styled(io, val::AbstractVector; has_colour::Bool=false, is_matching::Bool, max_entries::Int=length(val))
+    if length(val) > max_entries 
+        ks = floor(Int, max_entries / 2)
+        ke = ceil(Int, max_entries / 2)
+        _show_maybe_styled(io, '['; has_colour, is_matching)
+        for (c, i) in enumerate(eachindex(val))
+            _show_maybe_styled(io, val[i]; has_colour, is_matching)
+            _show_maybe_styled(io, ", "; has_colour, is_matching)
+            c ≥ ks && break
+        end
+        _show_maybe_styled(io, "..., "; has_colour, is_matching)
+        vals = Vector{eltype(val)}(undef, ke)
+        for (c, i) in enumerate(Iterators.reverse(eachindex(val)))
+            vals[c] = val[i]
+            c ≥ ke && break
+        end
+        for (i, v) in enumerate(Iterators.reverse(vals))
+            _show_maybe_styled(io, v; has_colour, is_matching)
+            if i != ke
+                _show_maybe_styled(io, ", "; has_colour, is_matching)
+            end
+        end
+        _show_maybe_styled(io, ']'; has_colour, is_matching)
+    else
+        _show_maybe_styled(io, val; has_colour, is_matching)
+    end
 end
 
 function print_spaces(io::IO, num_spaces::Int) 
@@ -175,3 +223,49 @@ function show_diff_generic(ctx::IOContext, expected, result; expected_name="expe
 end
 
 show_diff(::AbstractTypeCategory, ctx::IOContext, expected, result; expected_name="expected", result_name="result", kwargs...) = show_diff_generic(ctx::IOContext, expected, result; expected_name=expected_name, result_name=result_name, justify_headers=:none, kwargs...)
+
+function show_diff(::VectorTypeCat, ctx::IOContext, expected, result; expected_name="expected", result_name="result", max_show_differing_entries::Int=10, max_per_col_width::Int=((displaysize(ctx)[2]*3) ÷ 10), kwargs...)
+    has_colour = get(ctx, :color, false)::Bool
+    expected_indices = eachindex(expected)
+    result_indices = eachindex(result)
+    if expected_indices != result_indices
+        expected_diff_result = setdiff(expected_indices, result_indices)
+        result_diff_expected = setdiff(result_indices, expected_indices)
+
+        println(ctx, "Reason: `eachindex($expected_name) != eachindex($result_name)`")
+
+        p = PrintAligned("`eachindex($expected_name) ⧵ eachindex($result_name)`", "`eachindex($result_name) ⧵ eachindex($expected_name)`"; separator=" = ")
+        p(ctx, 1)
+
+        show_maybe_styled(ctx, expected_diff_result; has_colour, is_matching=false, max_entries=max_show_differing_entries)
+        println(ctx)
+        p(ctx, 2)
+        show_maybe_styled(ctx, result_diff_expected; has_colour, is_matching=false, max_entries=max_show_differing_entries)
+        println(ctx)
+        return nothing
+    end
+    differing_indices = keytype(expected)[ i for i in expected_indices if !isequal(expected[i], result[i]) ]
+    n_diff = length(differing_indices)
+
+    ks = floor(Int, min(n_diff, max_show_differing_entries) / 2)
+    ke = ceil(Int, min(n_diff, max_show_differing_entries) / 2)
+
+    index_diffs = vcat(differing_indices[1:ks], differing_indices[end-ke+1:end])
+    expected_diffs = repr.(getindex.(Ref(expected), index_diffs))
+    result_diffs = repr.(getindex.(Ref(result), index_diffs))
+
+
+    max_col1_width = max( min.(vcat([textwidth("index")], textwidth.(repr.(index_diffs))), max_per_col_width)...) + 2
+    max_col2_width = max( min.(vcat([textwidth(string(expected_name))], textwidth.(expected_diffs)), max_per_col_width)...) + 2
+    max_col3_width = max( min.(vcat([textwidth(string(expected_name))], textwidth.(result_diffs)), max_per_col_width)...) + 2
+   
+    println(ctx, cpad("index", max_col1_width), "|", cpad(string(expected_name), max_col2_width), "|", cpad(string(result_name), max_col3_width))
+
+    for i in 1:length(index_diffs)
+        println(ctx, cpad(index_diffs[i], max_col1_width), "|", cpad(expected_diffs[i], max_col2_width), "|", cpad(result_diffs[i], max_col3_width))
+        if i == ks && n_diff > max_show_differing_entries            
+            println(ctx, cpad("⋮", max_col1_width), "|", cpad("⋮", max_col2_width), "|", cpad("⋮", max_col3_width))    
+        end
+    end
+    return nothing
+end
