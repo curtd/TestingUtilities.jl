@@ -152,7 +152,6 @@ function test_case_exprs(e::EvaluateTestCasesExpr; source, all_header_names)
     show_all_test_data_expr = Expr(:block)
 
     num_test_exprs = 1
-    
     for evaluate_test_expr in e.input_exprs
         if evaluate_test_expr isa TestExpr 
             ex = evaluate_test_expr.original_expr
@@ -163,12 +162,12 @@ function test_case_exprs(e::EvaluateTestCasesExpr; source, all_header_names)
                     empty!(local_evaluate_test_data[$num_test_exprs])
                     local test_result = try 
                         $(new_test_expr) 
-                        $TestingUtilities.Test.Returned(_result, _result, $(source))
+                        $Test.Returned(_result, _result, $(source))
                     catch _e
                         _e isa InterruptException && rethrow()
-                        $TestingUtilities.Test.Threw(_e, $Base.current_exceptions(), $(source))
+                        $Test.Threw(_e, $(current_exceptions_expr()), $(source))
                     end
-                    if $TestingUtilities.test_did_not_succeed(test_result)
+                    if $test_did_not_succeed(test_result)
                         testdata_values = local_evaluate_test_data[$num_test_exprs]
                         current_values = $(Expr(:tuple, Expr(:parameters, all_header_names...)))
 
@@ -180,14 +179,14 @@ function test_case_exprs(e::EvaluateTestCasesExpr; source, all_header_names)
                         end
                         push!(failed_test_data[$num_test_exprs], current_values_dict)
                     end
-                    $TestingUtilities.Test.do_test(test_result, $(QuoteNode(ex)))
+                    $Test.do_test(test_result, $(QuoteNode(ex)))
                 end)
             )
 
             push!(show_all_test_data_expr.args, quote 
                 if !isempty(failed_test_data[$num_test_exprs])
-                    results_printer = $TestingUtilities.TestResultsPrinter(io, $(QuoteNode(ex)); use_isequals_equality=$use_isequals_equality)
-                    $TestingUtilities.print_testcases_data!(results_printer, failed_test_data[$num_test_exprs])
+                    results_printer = $TestResultsPrinter(io, $(QuoteNode(ex)); use_isequals_equality=$use_isequals_equality)
+                    $print_testcases_data!(results_printer, failed_test_data[$num_test_exprs])
                 end
             end)
             num_test_exprs += 1
@@ -330,7 +329,7 @@ macro test_cases(args...)
     
     out_expr = quote 
         local failed_test_data = [Any[] for i in 1:$(num_test_exprs)]
-        local local_evaluate_test_data = [$TestingUtilities.OrderedDict{Any,Any}() for i in 1:$(num_test_exprs)]
+        local local_evaluate_test_data = [$OrderedDict{Any,Any}() for i in 1:$(num_test_exprs)]
         local has_set_failed_data = Ref{Bool}(false)
 
         local show_all_test_data = let failed_test_data=failed_test_data, has_set_failed_data=has_set_failed_data, io=$(io_expr)

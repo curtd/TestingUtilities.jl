@@ -1,16 +1,16 @@
 @testset "@test_eventually" begin 
     @testset "Util" begin 
         test_data = [
-            (; input=:(1s), output=:(Dates.Second(1))),
-            (; input=:(1ms), output=:(Dates.Millisecond(1))),
-            (; input=:(2s), output=:(Dates.Second(2))),
-            (; input=:(1m), output=:(Dates.Minute(1))),
-            (; input=:(1h), output=:(Dates.Hour(1))),
-            (; input=:(3h), output=:(Dates.Hour(3))),
-            (; input=:(1d), output=:(Dates.Day(1))),
-            (; input=:(1w), output=:(Dates.Week(1))),
-            (; input=:(1month), output=:(Dates.Month(1))),
-            (; input=:(1y), output=:(Dates.Year(1))),
+            (; input=:(1s), output=:($Dates.Second(1))),
+            (; input=:(1ms), output=:($Dates.Millisecond(1))),
+            (; input=:(2s), output=:($Dates.Second(2))),
+            (; input=:(1m), output=:($Dates.Minute(1))),
+            (; input=:(1h), output=:($Dates.Hour(1))),
+            (; input=:(3h), output=:($Dates.Hour(3))),
+            (; input=:(1d), output=:($Dates.Day(1))),
+            (; input=:(1w), output=:($Dates.Week(1))),
+            (; input=:(1month), output=:($Dates.Month(1))),
+            (; input=:(1y), output=:($Dates.Year(1))),
         ]
         for data in test_data 
             input = data.input 
