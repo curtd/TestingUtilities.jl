@@ -45,6 +45,8 @@ module TestTestingUtilities
         data::Bool 
     end
 
+    append_char(x, c; n::Int) = x * repeat(c, n)
+
     include("test_util/_test_util.jl")
 
     include("test_settings.jl")

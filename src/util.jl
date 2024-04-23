@@ -68,7 +68,7 @@ function check_task_done!(t::TaskFinishedTimer)
     end
     return nothing
 end
-
+current_exceptions_expr() = VERSION ≥ v"1.7" ? :($Base.current_exceptions()) : :($Base.catch_stack())
 
 function TaskFinishedTimer(max_time::Millisecond, sleep_time::Millisecond,  return_type::Type{T}, cb::Function, args...; timer_name::String="") where {T}
     ch = Channel{T}(1)

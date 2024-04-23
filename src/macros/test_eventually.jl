@@ -1,20 +1,20 @@
 function time_unit_expr(num::Int, unit::Symbol)
     if unit === :ms 
-        return :(Dates.Millisecond($num))
+        return :($Dates.Millisecond($num))
     elseif unit === :s
-        return :(Dates.Second($num))
+        return :($Dates.Second($num))
     elseif unit === :m
-        return :(Dates.Minute($num))
+        return :($Dates.Minute($num))
     elseif unit === :h
-        return :(Dates.Hour($num))
+        return :($Dates.Hour($num))
     elseif unit === :d
-        return :(Dates.Day($num))
+        return :($Dates.Day($num))
     elseif unit === :w
-        return :(Dates.Week($num))
+        return :($Dates.Week($num))
     elseif unit === :month 
-        return :(Dates.Month($num))
+        return :($Dates.Month($num))
     elseif unit === :y
-        return :(Dates.Year($num))
+        return :($Dates.Year($num))
     else
         return nothing 
     end
@@ -28,7 +28,7 @@ function parse_shorthand_duration(ex::Expr)
             return nothing
     end
 end
-parse_shorthand_duration(ex::Int) = :(Dates.Millisecond($ex))
+parse_shorthand_duration(ex::Int) = :($Dates.Millisecond($ex))
 parse_shorthand_duration(ex) = nothing
 
 """
@@ -73,42 +73,41 @@ macro test_eventually(args...)
 
     return Base.remove_linenums!(quote 
         local TestingUtilities = $(@__MODULE__)
-        local Dates = TestingUtilities.Dates
         local io = $(esc(io_expr))
-        local results_printer = TestingUtilities.TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
+        local results_printer = $TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)
-        local failed_test_data = TestingUtilities.OrderedDict{Any,Any}()
+        local failed_test_data = $OrderedDict{Any,Any}()
 
         local test_cb = function()
             try 
                 $(test_expr)
-                TestingUtilities.Test.Returned(_result, _result, $(source))
+                $Test.Returned(_result, _result, $(source))
             catch _e 
-                TestingUtilities.Test.Threw(_e, Base.current_exceptions(), $(source))
+                $Test.Threw(_e, $(current_exceptions_expr()), $(source))
             end
         end
         local max_time = $timeout_expr
         local sleep_time = $sleep_period_expr
-        local timer = TestingUtilities.TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(original_ex_str))
+        local timer = $TaskFinishedTimer(test_cb; max_time=max_time, sleep_time=sleep_time, timer_name=$(original_ex_str))
 
         local test_result
 
         while true 
-            test_result = fetch(timer; throw_error=false)
+            test_result = $fetch(timer; throw_error=false)
             if isnothing(test_result)
                 # Timed out 
-                TestingUtilities.print_testeventually_data!(results_printer, max_time, failed_test_data, test_input_data)
-                test_result = TestingUtilities.Test.Threw(TestingUtilities.TestTimedOutException(max_time, $(original_ex_str)), [], $(source))
+                $print_testeventually_data!(results_printer, max_time, failed_test_data, test_input_data)
+                test_result = $Test.Threw($TestTimedOutException(max_time, $(original_ex_str)), [], $(source))
             else
-                result = TestingUtilities.test_ran_result(test_result)
+                result = $test_ran_result(test_result)
                 if result == false
                     $(repeat ? :(continue) : nothing)
-                    TestingUtilities.print_Test_data!(results_printer, failed_test_data, test_input_data)
+                    $print_Test_data!(results_printer, failed_test_data, test_input_data)
                 end
             end
             break
         end
 
-        TestingUtilities.Test.do_test(test_result, $(QuoteNode(original_ex)))
+        $Test.do_test(test_result, $(QuoteNode(original_ex)))
     end)
 end

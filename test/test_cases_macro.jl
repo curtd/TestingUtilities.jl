@@ -1,5 +1,3 @@
-append_char(x, c; n::Int) = x * repeat(c, n)
-
 @testset "@test_cases" begin 
     @testset "Util" begin 
         @test TestingUtilities.parse_table(:(a | b)) == [:a, :b]
@@ -188,4 +186,17 @@ append_char(x, c; n::Int) = x * repeat(c, n)
 
     @test test_results_match(results, (Test.Fail, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Pass))
 
+    f_sometimes_fails = t->t==1 ? throw(ArgumentError("Uhoh")) : t 
+    results = Test.@testset NoThrowTestSet "Test data - test throws" begin 
+        io = IOBuffer()
+        @test_cases io=io begin 
+            a | output 
+            0 | 0 
+            1 | 1
+            @Test f_sometimes_fails(a) == output
+        end
+        message = String(take!(io))
+        @test message == "Test `f_sometimes_fails(a) == output` failed:\nValues:\n------\na = 1\noutput = 1\n"
+    end
+    @test test_results_match(results, (Test.Pass, Test.Error))
 end

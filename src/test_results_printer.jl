@@ -107,8 +107,8 @@ function print_testeventually_data!(p::TestResultsPrinter, max_time, failed_test
 end
 
 function print_testcases_data!(p::TestResultsPrinter, failed_test_data)
-    TestingUtilities.print_header!(p, TestingUtilities.TestFailed())
-    TestingUtilities.print_header!(p, TestingUtilities.TestValues())
+    print_header!(p, TestFailed())
+    print_header!(p, TestValues())
     for t in failed_test_data
         println(p.io, "------")
         print_show_diff!(p, t)

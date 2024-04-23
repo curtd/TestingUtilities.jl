@@ -22,8 +22,6 @@ multi_input_kwargs(x; y) = x*y
 
 const TEST_EXPR_KEY = TestingUtilities._DEFAULT_TEST_EXPR_KEY
 
-append_char(x, c; n::Int) = x * repeat(c, n)
-
 macro sample_macro(f, x)
     return quote 
         $f($x)
