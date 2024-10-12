@@ -20,10 +20,14 @@ function _show_name(ctx, name)
 end
 
 function show_value(ctx::IOContext, value::Ref; kwargs...)
-    println(ctx, "Ref(")
-    result = show_value(ctx, value[]; kwargs...)
-    println(ctx, ")")
-    return result
+    if isassigned(value)
+        println(ctx, "Ref(")
+        result = show_value(ctx, value[]; kwargs...)
+        println(ctx, ")")
+        return result
+    else
+        println(ctx, "Ref(#undef)")
+    end
 end
 
 function show_value(ctx::IOContext, value; max_print_length::Int=max_length_to_print[], kwargs...)
@@ -107,10 +111,16 @@ function show_name_value(show_value_func, ctx::IOContext, name, value::Expr; kwa
 end
 
 function show_name_value(show_value_func, ctx::IOContext, name, value::Ref; kwargs...)
-    name_width = _show_name(ctx, name)
-    print(ctx, "[] = ")
-    name_width += 5
-    return show_indented(show_value_func, ctx, displaysize(ctx), value[]; indent=name_width, kwargs...)
+    if isassigned(value)
+        name_width = _show_name(ctx, name)
+        print(ctx, "[] = ")
+        name_width += 5
+        return show_indented(show_value_func, ctx, displaysize(ctx), value[]; indent=name_width, kwargs...)
+    else
+        print(ctx, "!isassigned(")
+        _show_name(ctx, name)
+        println(ctx, ")")
+    end
 end
 
 

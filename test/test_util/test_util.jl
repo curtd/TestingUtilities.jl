@@ -42,17 +42,27 @@ PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
     end
     @testset "show_value" begin 
         @testset "Generic value" begin 
-        io = IOBuffer()
-        k = :var
-        v = 1
-        TestingUtilities.show_value(v; io)
-        @test String(take!(io)) == "1\n"
-        TestingUtilities.show_value(k, v; io)
-        @test String(take!(io)) == "var = 1\n"
+            io = IOBuffer()
+            k = :var
+            v = 1
+            TestingUtilities.show_value(v; io)
+            @test String(take!(io)) == "1\n"
+            TestingUtilities.show_value(k, v; io)
+            @test String(take!(io)) == "var = 1\n"
 
-        k = Expr(:call, :f, :x)
-        TestingUtilities.show_value(k, v; io)
-        @test String(take!(io)) == "`f(x)` = 1\n"
+            k = Expr(:call, :f, :x)
+            TestingUtilities.show_value(k, v; io)
+            @test String(take!(io)) == "`f(x)` = 1\n"
+            
+            v = Ref{Any}()
+            TestingUtilities.show_value(v; io)
+            @test String(take!(io)) == "Ref(#undef)\n"
+
+            k = :x
+            TestingUtilities.show_value(k, v; io)
+            @test String(take!(io)) == "!isassigned(x)\n"
+            v[] = 1
+            TestingUtilities.show_value(v; io)
         end
         if run_df_tests
             @testset "DataFrame" begin 
