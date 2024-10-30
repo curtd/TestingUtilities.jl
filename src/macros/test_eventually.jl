@@ -51,18 +51,22 @@ If `key = value` is given for `key` = `sleep` or `key` = `timeout`, then
 macro test_eventually(args...)
     kwargs = parse_kwarg_expr(args[1:end-1]...)
     io_expr = fetch_kwarg_expr(kwargs; key=:io, expected_type=[Symbol, Expr], default_value=:(stderr))
-    timeout_expr = fetch_kwarg_expr(kwargs; key=:timeout, expected_type=[Expr, Int])
-    sleep_period_expr = fetch_kwarg_expr(kwargs; key=:sleep, expected_type=[Expr, Int])
+    timeout_expr = fetch_kwarg_expr(kwargs; key=:timeout, expected_type=[Symbol, Expr, Int])
+    sleep_period_expr = fetch_kwarg_expr(kwargs; key=:sleep, expected_type=[Symbol, Expr, Int])
     repeat = fetch_kwarg_expr(kwargs; key=:repeat, expected_type=[Bool], default_value=false)
 
     original_ex = args[end]
 
     if (timeout_short_expr = parse_shorthand_duration(timeout_expr); !isnothing(timeout_short_expr))
         timeout_expr = timeout_short_expr
+    else 
+        timeout_expr = esc(timeout_expr)
     end
 
     if (sleep_period_short_expr = parse_shorthand_duration(sleep_period_expr); !isnothing(sleep_period_short_expr))
         sleep_period_expr = sleep_period_short_expr
+    else 
+        sleep_period_expr = esc(sleep_period_expr)
     end
 
     initial_values_expr, test_expr, use_isequals_equality = test_expr_and_init_values(original_ex, :failed_test_data, :_result)
@@ -72,7 +76,6 @@ macro test_eventually(args...)
     original_ex_str = show_value_str(original_ex)
 
     return Base.remove_linenums!(quote 
-        local TestingUtilities = $(@__MODULE__)
         local io = $(esc(io_expr))
         local results_printer = $TestResultsPrinter(io, $(QuoteNode(original_ex)); use_isequals_equality=$use_isequals_equality)
         local test_input_data = $(initial_values_expr)

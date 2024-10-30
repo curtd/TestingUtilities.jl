@@ -44,6 +44,12 @@
         message = String(take!(io))
         @test message == "Test `f(done)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\ndone[] = $(done[])\n"
 
+        sleep_var = Millisecond(10)
+        timeout_var = Millisecond(100)
+        @test_eventually io=io sleep=sleep_var timeout=timeout_var f(done)
+        message = String(take!(io))
+        @test message == "Test `f(done)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\ndone[] = $(done[])\n"
+
         @test_eventually io=io sleep=1s timeout=1s f(done)
         message = String(take!(io))
         @test message == "Test `f(done)` failed:\nReason: Test took longer than 1000 milliseconds to pass\nValues:\ndone[] = $(done[])\n"
@@ -84,5 +90,5 @@
         message = String(take!(io))
         @test message == "Test `f(d)` failed:\nReason: Test took longer than 100 milliseconds to pass\nValues:\nd[] = $(d[])\n"
     end
-    @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Pass, Test.Error, Test.Pass))
+    @test test_results_match(results, (Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Error, Test.Pass, Test.Pass, Test.Fail, Test.Pass, Test.Fail, Test.Pass, Test.Pass, Test.Error, Test.Pass))
 end
