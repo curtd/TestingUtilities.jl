@@ -9,7 +9,7 @@ macro test_throws_compat(ExceptionType, message, expr)
 end
 
 # Ensure consistent type printing for DateTime type, in interactive mode or in package tests 
-PrettyTables.compact_type_str(::Type{DateTime}) = "DateTime"
+PrettyTables._compact_type_str(::Type{DateTime}) = "DateTime"
 
 @testset "Macro utilities" begin 
     @test TestingUtilities.unwrap_if_quotenode(:x) == :x 

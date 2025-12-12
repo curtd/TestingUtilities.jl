@@ -114,9 +114,9 @@ module TestingUtilitiesDataFramesExt
                             end
                         end
                     end
-                    length(differing_rows) == max_num_of_rows+1 && break 
+                    length(differing_rows) ≥ max_num_of_rows+1 && break 
                 end
-                if length(differing_rows) == max_num_of_rows+1
+                if length(differing_rows) ≥ max_num_of_rows+1
                     pop!(differing_rows)
                     has_more_differing_rows = true
                 else
