@@ -35,139 +35,22 @@ x_diffvalues = DataFrame(:a =&gt; [1, 2, 3], :b =&gt; [false, false, true])
     @Test x == x_diffcols
     @Test x == x_diffnrows
     @Test x == x_diffvalues
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Precompiling</span></span> packages...
-<span class="sgr36"><span class="sgr1">Info</span></span> Given TestingUtilitiesDataFramesExt was explicitly requested, output will be shown live 
-WARNING: Imported binding PrettyTables.TextHighlighter was undeclared at import time during import to TestingUtilitiesDataFramesExt.
-<span class="sgr91"><span class="sgr1">ERROR: </span></span>LoadError: UndefVarError: `_compact_type_str` not defined in `PrettyTables`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
-  [1] <span class="sgr1">getproperty(</span><span class="sgr90">x</span>::Module, <span class="sgr90">f</span>::Symbol<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">Base_compiler.jl:47</span></span>
-  [2] top-level scope
-<span class="sgr90">    @</span> <span class="sgr90">~/work/TestingUtilities.jl/TestingUtilities.jl/ext/<span class="sgr4">TestingUtilitiesDataFramesExt.jl:37</span></span>
-  [3] <span class="sgr1">include(</span><span class="sgr90">mod</span>::Module, <span class="sgr90">_path</span>::String<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">Base.jl:306</span></span>
-  [4] <span class="sgr1">include_package_for_output(</span><span class="sgr90">pkg</span>::Base.PkgId, <span class="sgr90">input</span>::String, <span class="sgr90">depot_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">dl_load_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">load_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">concrete_deps</span>::Vector<span class="sgr90">{Pair{Base.PkgId, UInt128}}</span>, <span class="sgr90">source</span>::Nothing<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">loading.jl:3021</span></span>
-  [5] top-level scope
-<span class="sgr90">    @</span> <span class="sgr90"><span class="sgr4">stdin:5</span></span>
-  [6] <span class="sgr1">eval(</span><span class="sgr90">m</span>::Module, <span class="sgr90">e</span>::Any<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Core</span> <span class="sgr90">./<span class="sgr4">boot.jl:489</span></span>
-  [7] <span class="sgr1">include_string(</span><span class="sgr90">mapexpr</span>::typeof(identity), <span class="sgr90">mod</span>::Module, <span class="sgr90">code</span>::String, <span class="sgr90">filename</span>::String<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">loading.jl:2867</span></span>
-  [8] <span class="sgr1">include_string</span>
-<span class="sgr90">    @</span> <span class="sgr90">./<span class="sgr4">loading.jl:2877</span> [inlined]</span>
-  [9] <span class="sgr1">exec_options(</span><span class="sgr90">opts</span>::Base.JLOptions<span class="sgr1">)</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">client.jl:315</span></span>
- [10] <span class="sgr1">_start()</span>
-<span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">client.jl:550</span></span>
-in expression starting at /home/runner/work/TestingUtilities.jl/TestingUtilities.jl/ext/TestingUtilitiesDataFramesExt.jl:1
-in expression starting at stdin:5
-            <span class="sgr91">  ✗ </span>TestingUtilities → TestingUtilitiesDataFramesExt
-  0 dependencies successfully precompiled in 3 seconds. 40 already precompiled.
-
-<span class="sgr91"><span class="sgr1">┌ Error: </span></span>Error during loading of extension TestingUtilitiesDataFramesExt of TestingUtilities, use `Base.retry_load_extensions()` to retry.
-<span class="sgr91"><span class="sgr1">│ </span></span>  exception =
-<span class="sgr91"><span class="sgr1">│ </span></span>   1-element ExceptionStack:
-<span class="sgr91"><span class="sgr1">│ </span></span>   The following 1 direct dependency failed to precompile:
-<span class="sgr91"><span class="sgr1">│ </span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   TestingUtilitiesDataFramesExt
-<span class="sgr91"><span class="sgr1">│ </span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   Failed to precompile TestingUtilitiesDataFramesExt [af54add3-b6c4-554c-a12d-b92f9c941176] to &quot;/home/runner/.julia/compiled/v1.12/TestingUtilitiesDataFramesExt/jl_XFSrYe&quot;.
-<span class="sgr91"><span class="sgr1">│ </span></span>   WARNING: Imported binding PrettyTables.TextHighlighter was undeclared at import time during import to TestingUtilitiesDataFramesExt.
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr91"><span class="sgr1">ERROR: </span></span>LoadError: UndefVarError: `_compact_type_str` not defined in `PrettyTables`
-<span class="sgr91"><span class="sgr1">│ </span></span>   Suggestion: check for spelling errors or missing imports.
-<span class="sgr91"><span class="sgr1">│ </span></span>   Stacktrace:
-<span class="sgr91"><span class="sgr1">│ </span></span>     [1] <span class="sgr1">getproperty(</span><span class="sgr90">x</span>::Module, <span class="sgr90">f</span>::Symbol<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">Base_compiler.jl:47</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [2] top-level scope
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">~/work/TestingUtilities.jl/TestingUtilities.jl/ext/<span class="sgr4">TestingUtilitiesDataFramesExt.jl:37</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [3] <span class="sgr1">include(</span><span class="sgr90">mod</span>::Module, <span class="sgr90">_path</span>::String<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">Base.jl:306</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [4] <span class="sgr1">include_package_for_output(</span><span class="sgr90">pkg</span>::Base.PkgId, <span class="sgr90">input</span>::String, <span class="sgr90">depot_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">dl_load_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">load_path</span>::Vector<span class="sgr90">{String}</span>, <span class="sgr90">concrete_deps</span>::Vector<span class="sgr90">{Pair{Base.PkgId, UInt128}}</span>, <span class="sgr90">source</span>::Nothing<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">loading.jl:3021</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [5] top-level scope
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90"><span class="sgr4">stdin:5</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [6] <span class="sgr1">eval(</span><span class="sgr90">m</span>::Module, <span class="sgr90">e</span>::Any<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Core</span> <span class="sgr90">./<span class="sgr4">boot.jl:489</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [7] <span class="sgr1">include_string(</span><span class="sgr90">mapexpr</span>::typeof(identity), <span class="sgr90">mod</span>::Module, <span class="sgr90">code</span>::String, <span class="sgr90">filename</span>::String<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">loading.jl:2867</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [8] <span class="sgr1">include_string</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">./<span class="sgr4">loading.jl:2877</span> [inlined]</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>     [9] <span class="sgr1">exec_options(</span><span class="sgr90">opts</span>::Base.JLOptions<span class="sgr1">)</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">client.jl:315</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>    [10] <span class="sgr1">_start()</span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   <span class="sgr90">    @</span> <span class="sgr90">Base</span> <span class="sgr90">./<span class="sgr4">client.jl:550</span></span>
-<span class="sgr91"><span class="sgr1">│ </span></span>   in expression starting at /home/runner/work/TestingUtilities.jl/TestingUtilities.jl/ext/TestingUtilitiesDataFramesExt.jl:1
-<span class="sgr91"><span class="sgr1">│ </span></span>   in expression starting at stdin:
-<span class="sgr91"><span class="sgr1">└ </span></span><span class="sgr90">@ Base loading.jl:1614</span>
-Test `x == x_diffcols` failed:
-Differing fields between `x` and `x_diffcols`:
-
-         x::DataFrames.DataFrame = 3×2 DataFrame
- Row │ a      b
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2   true
-   3 │     4   true
-x_diffcols::DataFrames.DataFrame = 3×2 DataFrame
- Row │ a      z
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2  false
-   3 │     4   true
-
- index |          x.columns | x_diffcols.columns
-   2   |    Bool[0, 1, 1]   |    Bool[0, 0, 1]
-
-         x.colindex::DataFrames.Index = DataFrames.Index(Dict(:a =&gt; 1, :b =&gt; 2), [:a, :b])
-x_diffcols.colindex::DataFrames.Index = DataFrames.Index(Dict(:a =&gt; 1, :z =&gt; 2), [:a, :z])
-
-         x.colindex.lookup::Dict{Symbol, Int64} = Dict(:a =&gt; 1, :b =&gt; 2)
-x_diffcols.colindex.lookup::Dict{Symbol, Int64} = Dict(:a =&gt; 1, :z =&gt; 2)
-
- index |          x.colindex.names| x_diffcols.colindex.names
-   2   |            :b            |            :z
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test `x == x_diffcols` failed:
+Reason: `propertynames(x) != propertynames(x_diffcols)`
+`propertynames(x)`          = {<span class="sgr32">:a</span>, <span class="sgr31">:b</span>}
+`propertynames(x_diffcols)` = {<span class="sgr32">:a</span>, <span class="sgr31">:z</span>}
 Test `x == x_diffnrows` failed:
-Differing fields between `x` and `x_diffnrows`:
-
-          x::DataFrames.DataFrame = 3×2 DataFrame
- Row │ a      b
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2   true
-   3 │     4   true
-x_diffnrows::DataFrames.DataFrame = 2×2 DataFrame
- Row │ a      b
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2   true
-
- index |           x.columns | x_diffnrows.columns
-   1   |      [1, 2, 4]      |        [1, 2]
-   2   |    Bool[0, 1, 1]    |      Bool[0, 1]
+Reason: `nrow(x) != nrow(x_diffnrows)`
+`nrow(x)`           = 3
+`nrow(x_diffnrows)` = 2
 Test `x == x_diffvalues` failed:
-Differing fields between `x` and `x_diffvalues`:
-
-           x::DataFrames.DataFrame = 3×2 DataFrame
- Row │ a      b
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2   true
-   3 │     4   true
-x_diffvalues::DataFrames.DataFrame = 3×2 DataFrame
- Row │ a      b
-     │ Int64  Bool
-─────┼──────────────
-   1 │     1  false
-   2 │     2  false
-   3 │     3   true
-
- index |            x.columns | x_diffvalues.columns
-   1   |       [1, 2, 4]      |       [1, 2, 3]
-   2   |     Bool[0, 1, 1]    |     Bool[0, 0, 1]</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 12 December 2025 00:46">Friday 12 December 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Reason: Mismatched values
+┌───────────────────┬──────────────┬───────┬───────┐
+│<span class="sgr1">           row_num │           df │     a │     b │
+│<span class="sgr90"> U{Nothing, Int64} │       Symbol │ Int64 │  Bool │
+├───────────────────┼──────────────┼───────┼───────┤
+│                 2 │            x │</span><span class="sgr32">     2 │</span><span class="sgr31">  true │
+│                   │ x_diffvalues │</span><span class="sgr32">     2 │</span><span class="sgr31"> false │
+│                 3 │            x │     4 │</span><span class="sgr32">  true │
+│                   │ x_diffvalues │</span><span class="sgr31">     3 │</span><span class="sgr32">  true │
+└───────────────────┴──────────────┴───────┴───────┘</span></span></code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 12 December 2025 00:56">Friday 12 December 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
