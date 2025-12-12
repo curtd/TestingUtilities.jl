@@ -1,6 +1,8 @@
 module TestingUtilitiesDataFramesExt 
     using TestingUtilities, DataFrames, PrettyTables 
 
+    using PrettyTables: TextHighlighter
+
     const pretty_table_kwarg_keys = (:alignment, :backend, :cell_alignment, :cell_first_line_only, :compact_printing, :formatters, :header, :header_alignment, :header_cell_alignment, :limit_printing, :max_num_of_columns, :max_num_of_rows, :renderer, :row_labels, :row_label_alignment, :row_label_column_title, :row_number_column_title, :show_header, :show_row_number, :show_subheader, :title, :title_alignment)
     const pretty_table_kwarg_keys_text = (pretty_table_kwarg_keys..., :alignment_anchor_fallback, :alignment_anchor_fallback_override, :alignment_anchor_regex, :autowrap, :body_hlines, :body_hlines_format, :columns_width, :crop, :Crop_subheader, :continuation_row_alignment, :display_size, :ellipsis_line_skip, :equal_columns_width, :highlighters, :hlines, :linebreaks, :maximum_columns_width, :minimum_columns_width, :newline_at_end, :overwrite, :reserved_display_lines, :row_number_alignment, :show_omitted_cell_summary, :tf, :title_autowrap, :title_same_width_as_table, :vcrop_mode, :vlines, :border_crayon, :header_crayon, :omitted_cell_summary_crayon, :row_label_crayon, :row_label_header_crayon, :row_number_header_crayon, :subheader_crayon, :text_crayon, :title_crayon)
 
@@ -32,7 +34,7 @@ module TestingUtilitiesDataFramesExt
     end
 
     struct TruncatedValue end 
-    PrettyTables.compact_type_str(::Type{TruncatedValue}) = ""
+    PrettyTables._compact_type_str(::Type{TruncatedValue}) = ""
 
     function show_truncated_df(io::IO, df::AbstractDataFrame; max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_df_max_nrows_ncols[], kwargs...)
         max_num_of_rows, max_num_of_columns = max.(1, max_num_rows_cols)
@@ -62,10 +64,9 @@ module TestingUtilitiesDataFramesExt
                 return _highlighters.f(data, i, j)
             end
             highlighter_fd = _highlighters.fd 
-            highlighter_crayon = _highlighters.crayon
-            highlighters = Highlighter(highlighter_f, highlighter_fd, highlighter_crayon)
+            highlighters = TextHighlighter(highlighter_f, highlighter_fd)
         else
-            highlighters = Highlighter((data,i,j) -> false, crayon"white")
+            highlighters = TextHighlighter((data,i,j) -> false, crayon"white")
         end
         formatters = function(v,i,j)
             if i == truncate_to_rows + 1
@@ -86,7 +87,7 @@ module TestingUtilitiesDataFramesExt
                 return _formatter(v,i,j)
             end
         end
-        return pretty_table(io, df_to_show; (k => v for (k, v) in pairs(kwargs) if k ∈ pretty_table_kwarg_keys_text)..., highlighters, formatters)
+        return pretty_table(io, df_to_show; (k => v for (k, v) in pairs(kwargs) if k ∈ pretty_table_kwarg_keys_text)..., highlighters=[highlighters], formatters=[formatters])
     end
 
     function TestingUtilities.show_diff(::TestingUtilities.StructTypeCat, ctx::IOContext, expected::AbstractDataFrame, result::AbstractDataFrame; expected_name="expected", result_name="result", max_num_rows_cols::Tuple{Int,Int} = TestingUtilities.show_diff_df_max_nrows_ncols[], results_printer::Union{TestingUtilities.TestResultsPrinter, Nothing}=nothing, differing_cols_only::Bool=false, kwargs...)
@@ -113,9 +114,9 @@ module TestingUtilitiesDataFramesExt
                             end
                         end
                     end
-                    length(differing_rows) == max_num_of_rows+1 && break 
+                    length(differing_rows) ≥ max_num_of_rows+1 && break 
                 end
-                if length(differing_rows) == max_num_of_rows+1
+                if length(differing_rows) ≥ max_num_of_rows+1
                     pop!(differing_rows)
                     has_more_differing_rows = true
                 else
@@ -166,7 +167,7 @@ module TestingUtilitiesDataFramesExt
                     end
                 end
 
-                highlighters = Highlighter((data,i,j) -> j > 2, highlight_diff)
+                highlighters = TextHighlighter((data,i,j) -> j > 2, highlight_diff)
                 formatters = (v, i, j) -> j == 1 && isnothing(v) ? "" : v
                 println(ctx, "Reason: Mismatched values")
                 for df in difference_dfs

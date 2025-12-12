@@ -160,7 +160,7 @@ end
 reset_show_df_opts() = set_show_df_opts(; max_num_rows=_show_df_max_nrows_default(), max_num_cols=_show_df_max_ncols_default())
 
 _show_diff_df_max_nrows_default() = 10 
-_show_diff_df_max_ncols_default() = 10 
+_show_diff_df_max_ncols_default() = 5 
 
 const show_diff_df_max_nrows_ncols = Ref((_show_diff_df_max_nrows_default(), _show_diff_df_max_ncols_default()))
 
