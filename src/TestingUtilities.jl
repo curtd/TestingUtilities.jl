@@ -1,6 +1,8 @@
 module TestingUtilities
 
-    using Dates, MLStyle, OrderedCollections, Preferences, Test
+    using Dates, MLStyle, Preferences, Test
+
+    using OrderedCollections: OrderedCollections, OrderedDict, LittleDict
     
     export @Test, @test_cases, @test_eventually 
 
